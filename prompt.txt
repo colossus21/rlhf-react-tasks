@@ -1,19 +1,13 @@
 Output a self-contained .jsx React+Tailwind+Shadcn app that accomplishes the following task:
 <task>
-Can you create game by using tailwind and shadcn with the following features:
-i) Provide a code plan first. The game should show 4 elements at start: Fire, Water, Earth, and Air. Each element should have unicode symbols/emojis.
-ii) there should be 3 boxes represented like box below the elements: box 1 + box 2 = box 3. boxes should be square shaped and can hold emojis.
-iii) Player can drag elements to box 1 and box 2. Box 3 would show the combined elements. There would be a reset button below. Use emoji of the element.
-iv) Here's a list of combinations:
-Fire + Water = Steam
-Fire + Earth = Lava
-Air + Earth = Dust
-Water + Earth = Mud
-Fire + Air = Energy
-Water + Energy = Life
-v) Show a progress report of how many elements have been discovered below the combiner with a section "Discovered Combinations:" then show the discovered elements in tags. Below tags show progress i.e. 1/6. congrats the player upon finding all combinations.
-vi) Make it visually appealing by centering the container, applying borders to boxes etc.
-vii) Styles should be nature themed. Do not use external images. Emojis should be distinct.
+Can you create this widget called "VIP Countdown", I want to see my next upcoming event with a timer:
+1. Provide a code plan first. The widget would show a large countdown at the center of the page. This countdown would have a event name above it and next and previous event below it with space-around. Show both buttons but make it active-inactive based on the event availability.
+2. Widget shows only one countdown for the next event, if finished, shows timer to next closest event. If there are no events to show, shows no timer and "No events!"
+3. Here is how events should look like:
+{ emoji: '🎂', name: "Joe's Birthday", date: "2024-13-01" }
+4. Below the widget there should be an info section showing list of events today and how many events are there in the current month.
+5. User should be able to add event by setting title, select emoji from dropdown (provide at least 10 emojis for birthdays, anniversay etc), date. The add event box should be shown on a modal.
+6. Use a purple and indigo color scheme
 </task>
 
 Make sure to use React in your response. You may use components from Shadcn using “@/components” like so: import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; You are not allowed to use any other dependencies or external assets.

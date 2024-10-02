@@ -1,181 +1,241 @@
 ### Code Plan
 
-1. Set up the basic React component structure
-2. Define state variables for elements, combinations, boxes, and discovered combinations
-3. Implement drag and drop functionality
-4. Create the game layout using Tailwind and Shadcn components
-5. Implement the combination logic
-6. Add a reset button
-7. Display the progress report and discovered combinations
-8. Style the game with a nature theme
-9. Ensure mobile responsiveness
-10. Optimize and refactor to keep the code under 500 lines
+1. Create the main `VIPCountdown` component
+2. Implement `EventCard` component for displaying event details
+3. Create `Countdown` component for timer functionality
+4. Develop `AddEventForm` component for adding new events
+5. Set up state management for events and current event index
+6. Implement navigation logic for Previous and Next buttons
+7. Create info section for displaying today's events and current month's event count
+8. Style the app using Tailwind CSS with purple and indigo color scheme
+9. Ensure mobile responsiveness using Tailwind's responsive classes
+10. Use Shadcn components for UI elements (Card, Button, Dialog, Input, Select)
 
 ### Code
 
 ```jsx
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const initialElements = [
-  { name: 'Fire', emoji: '🔥' },
-  { name: 'Water', emoji: '💧' },
-  { name: 'Earth', emoji: '🌎' },
-  { name: 'Air', emoji: '🌪️' },
-];
+const emojis = ['🎂', '🎉', '🎊', '🎁', '🍾', '💍', '🏆', '🎓', '🎭', '🎨'];
 
-const combinations = {
-  'Fire💧': { name: 'Steam', emoji: '☁️' },
-  'Fire🌎': { name: 'Lava', emoji: '🌋' },
-  'Air🌎': { name: 'Dust', emoji: '💨' },
-  'Water🌎': { name: 'Mud', emoji: '💩' },
-  'Fire🌪️': { name: 'Energy', emoji: '⚡' },
-  'Water⚡': { name: 'Life', emoji: '🌱' },
-};
-
-const ElementalCombinationGame = () => {
-  const [elements, setElements] = useState(initialElements);
-  const [box1, setBox1] = useState(null);
-  const [box2, setBox2] = useState(null);
-  const [result, setResult] = useState(null);
-  const [discoveredCombinations, setDiscoveredCombinations] = useState([]);
-
-  useEffect(() => {
-    if (box1 && box2) {
-      const combinationKey = box1.name + box2.emoji;
-      const reverseCombinationKey = box2.name + box1.emoji;
-      if (combinations[combinationKey]) {
-        setResult(combinations[combinationKey]);
-        if (!discoveredCombinations.includes(combinations[combinationKey].name)) {
-          const newCombination = combinations[combinationKey];
-          setDiscoveredCombinations([...discoveredCombinations, newCombination.name]);
-          setElements([...elements, newCombination]);
-        }
-      } else if (combinations[reverseCombinationKey]) {
-        setResult(combinations[reverseCombinationKey]);
-        if (!discoveredCombinations.includes(combinations[reverseCombinationKey].name)) {
-          const newCombination = combinations[reverseCombinationKey];
-          setDiscoveredCombinations([...discoveredCombinations, newCombination.name]);
-          setElements([...elements, newCombination]);
-        }
-      } else {
-        setResult({ name: 'No combination', emoji: '🤔' });
-      }
-    } else {
-      setResult(null);
-    }
-  }, [box1, box2]);
-
-  const handleDragStart = (e, element) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify(element));
-  };
-
-  const handleDrop = (e, boxSetter) => {
-    e.preventDefault();
-    const element = JSON.parse(e.dataTransfer.getData('text/plain'));
-    boxSetter(element);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const resetBoxes = () => {
-    setBox1(null);
-    setBox2(null);
-    setResult(null);
-  };
-
+const EventCard = ({ event }) => {
+  if (!event) return null;
   return (
-      <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-200 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white bg-opacity-80 backdrop-blur-md">
-          <CardContent className="p-6">
-            <h1 className="text-2xl font-bold text-center my-6 text-green-800">Elemental Combination Game</h1>
-
-            <div className="flex flex-wrap justify-center gap-4 mb-8">
-              {elements.map((element) => (
-                  <div
-                      key={element.name}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, element)}
-                      className="text-4xl cursor-move hover:scale-110 transition-transform"
-                  >
-                    {element.emoji}
-                  </div>
-              ))}
-            </div>
-
-            <div className="flex justify-between items-center mb-4">
-              <div
-                  onDrop={(e) => handleDrop(e, setBox1)}
-                  onDragOver={handleDragOver}
-                  className="w-24 h-24 border-4 border-green-500 rounded-lg flex items-center justify-center text-4xl bg-white"
-              >
-                {box1 ? box1.emoji : ''}
-              </div>
-              <div className="text-2xl">+</div>
-              <div
-                  onDrop={(e) => handleDrop(e, setBox2)}
-                  onDragOver={handleDragOver}
-                  className="w-24 h-24 border-4 border-green-500 rounded-lg flex items-center justify-center text-4xl bg-white"
-              >
-                {box2 ? box2.emoji : ''}
-              </div>
-              <div className="text-2xl">=</div>
-              <div className="w-24 h-24 border-4 border-blue-500 rounded-lg flex items-center justify-center text-4xl bg-white overflow-hidden">
-                {result ? result.emoji : ''}
-              </div>
-            </div>
-
-            <p className="text-center mb-4 text-lg font-semibold text-green-700">
-              {result ? result.name : 'Combine elements!'}
-            </p>
-
-            <button
-                onClick={resetBoxes}
-                className="w-full py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-            >
-              Reset
-            </button>
-
-            <div className="mt-6">
-              <h2 className="text-xl font-semibold mb-2 text-green-800">Discovered Combinations:</h2>
-              <div className="flex flex-wrap gap-2">
-                {discoveredCombinations.map((combo, index) => (
-                    <Badge key={index} variant="secondary" className="bg-green-200 text-green-800">
-                      {combo}
-                    </Badge>
-                ))}
-              </div>
-            </div>
-
-            <p className="mt-4 text-center text-green-700">
-              {discoveredCombinations.length === Object.keys(combinations).length
-                  ? '🎉 Congratulations! You\'ve discovered all combinations!'
-                  : `Progress: ${discoveredCombinations.length}/${Object.keys(combinations).length}`}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="text-center text-2xl font-bold">
+        <span>{event.emoji}</span> {event.name}
       </div>
   );
 };
 
-export default ElementalCombinationGame;
+const Countdown = ({ targetDate }) => {
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft(targetDate));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft(targetDate));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  if (timeLeft.total <= 0) {
+    return <div className="text-4xl font-bold">Event Started!</div>;
+  }
+
+  return (
+      <div className="text-4xl font-bold text-center">
+        {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
+      </div>
+  );
+};
+
+const AddEventForm = ({ onAddEvent, onClose }) => {
+  const [name, setName] = useState('');
+  const [emoji, setEmoji] = useState('');
+  const [date, setDate] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (name && emoji && date) {
+      onAddEvent({ name, emoji, date });
+      onClose();
+    }
+  };
+
+  return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+            type="text"
+            placeholder="Event Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+        />
+        <Select onValueChange={setEmoji} required>
+          <SelectTrigger>
+            <SelectValue placeholder="Select Emoji" />
+          </SelectTrigger>
+          <SelectContent>
+            {emojis.map((e) => (
+                <SelectItem key={e} value={e}>
+                  {e}
+                </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+        />
+        <Button type="submit" className="w-full">Add Event</Button>
+      </form>
+  );
+};
+
+const VIPCountdown = () => {
+  const [events, setEvents] = useState([
+    { emoji: '🎂', name: "Joe's Birthday", date: "2024-13-01" }
+  ]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentEventIndex, setCurrentEventIndex] = useState(0);
+
+  const sortedEvents = [...events].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const futureEvents = sortedEvents.filter(event => new Date(event.date) > new Date());
+
+  const currentEvent = futureEvents[currentEventIndex];
+
+  const todayEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    return eventDate.getDate() === today.getDate() &&
+        eventDate.getMonth() === today.getMonth() &&
+        eventDate.getFullYear() === today.getFullYear();
+  });
+
+  const currentMonthEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    return eventDate.getMonth() === today.getMonth() &&
+        eventDate.getFullYear() === today.getFullYear();
+  });
+
+  const addEvent = (newEvent) => {
+    setEvents([...events, newEvent]);
+  };
+
+  const handlePrevious = () => {
+    setCurrentEventIndex(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentEventIndex(prev => Math.min(futureEvents.length - 1, prev + 1));
+  };
+
+  return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-500 to-indigo-600 flex flex-col items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white/90 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold text-center text-purple-800">VIP Countdown</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {currentEvent ? (
+                <>
+                  <EventCard event={currentEvent} />
+                  <Countdown targetDate={currentEvent.date} />
+                  <div className="flex justify-between">
+                    <Button
+                        onClick={handlePrevious}
+                        disabled={currentEventIndex === 0}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                        onClick={handleNext}
+                        disabled={currentEventIndex === futureEvents.length - 1}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </>
+            ) : (
+                <div className="text-2xl font-bold text-center">No events!</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="mt-8 w-full max-w-md">
+          <Card className="bg-white/90 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-purple-800">Event Info</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Events today: {todayEvents.length}</p>
+              <p>Events this month: {currentMonthEvents.length}</p>
+              <ul className="list-disc list-inside">
+                {todayEvents.map((event, index) => (
+                    <li key={index}>{event.emoji} {event.name}</li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">Add Event</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New Event</DialogTitle>
+            </DialogHeader>
+            <AddEventForm onAddEvent={addEvent} onClose={() => setIsOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      </div>
+  );
+};
+
+function calculateTimeLeft(targetDate) {
+  const difference = +new Date(targetDate) - +new Date();
+  let timeLeft = {};
+
+  if (difference > 0) {
+    timeLeft = {
+      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((difference / 1000 / 60) % 60),
+      seconds: Math.floor((difference / 1000) % 60),
+      total: difference,
+    };
+  }
+
+  return timeLeft;
+}
+
+export default VIPCountdown;
 ```
 
 ### Explanation
 
-i) The game shows 4 initial elements (Fire 🔥, Water 💧, Earth 🌎, and Air 🌪️) with distinct emojis. These are displayed at the top of the game area.
+1. The widget shows a large countdown at the center of the page, with the event name above it. The Previous and Next buttons are displayed below the countdown, with their active/inactive state managed based on event availability.
 
-ii) Three boxes are represented below the elements: two input boxes (box 1 and box 2) and one result box (box 3). These boxes are square-shaped and can hold emojis. The layout is structured as "box 1 + box 2 = box 3".
+2. The widget displays only one countdown for the next upcoming event. If an event finishes, it automatically shows the timer for the next closest event. When there are no events to show, it displays "No events!" instead of a timer.
 
-iii) Players can drag elements to box 1 and box 2 using HTML5 drag and drop API. Box 3 shows the combined elements (or a "no combination" message). A reset button is placed below the boxes to clear the current combination.
+3. Events are structured as requested: `{ emoji: '🎂', name: "Joe's Birthday", date: "2024-13-01" }`.
 
-iv) The list of combinations is implemented in the game logic. When two elements are combined, the result is displayed in box 3 using the appropriate emoji.
+4. Below the main widget, there's an info section showing a list of today's events and the number of events in the current month.
 
-v) A progress report is shown below the combiner. It includes a "Discovered Combinations:" section with the discovered elements displayed as tags (using Shadcn's Badge component). The progress (e.g., "1/6") is displayed below the tags. A congratulatory message appears when all combinations are found.
+5. Users can add events through a modal dialog, which includes fields for setting the title, selecting an emoji from a dropdown (with 10 emojis provided), and choosing a date.
 
-vi) The styles are nature-themed, using a gradient background from light green to light blue. No external images are used, and all emojis are distinct to avoid confusion.
+6. The app uses a purple and indigo color scheme, implemented with Tailwind CSS classes.
 
-The Elemental Combination Game has been implemented as a self-contained React component using Tailwind for styling and Shadcn components for UI elements. 
+The provided code implements the "VIP Countdown" widget following the code plan outlined.
