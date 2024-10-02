@@ -1,148 +1,143 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
+import { format, differenceInSeconds } from 'date-fns';
 
-const initialElements = [
-  { name: 'Fire', emoji: '🔥' },
-  { name: 'Water', emoji: '💧' },
-  { name: 'Earth', emoji: '🌎' },
-  { name: 'Air', emoji: '🌪️' },
-];
+const emojis = ['🎂', '🎉', '💍', '🎓', '🎁', '🎈', '🍰', '🎊', '🎇', '🥳'];
 
-const combinations = {
-  'Fire💧': { name: 'Steam', emoji: '☁️' },
-  'Fire🌎': { name: 'Lava', emoji: '🌋' },
-  'Air🌎': { name: 'Dust', emoji: '💨' },
-  'Water🌎': { name: 'Mud', emoji: '💩' },
-  'Fire🌪️': { name: 'Energy', emoji: '⚡' },
-  'Water⚡': { name: 'Life', emoji: '🌱' },
-};
-
-const ElementalCombinationGame = () => {
-  const [elements, setElements] = useState(initialElements);
-  const [box1, setBox1] = useState(null);
-  const [box2, setBox2] = useState(null);
-  const [result, setResult] = useState(null);
-  const [discoveredCombinations, setDiscoveredCombinations] = useState([]);
+function App() {
+  const [events, setEvents] = useState([]);
+  const [currentEventIndex, setCurrentEventIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState({ emoji: '🎂', name: '', date: '' });
 
   useEffect(() => {
-    if (box1 && box2) {
-      const combinationKey = box1.name + box2.emoji;
-      const reverseCombinationKey = box2.name + box1.emoji;
-      if (combinations[combinationKey]) {
-        setResult(combinations[combinationKey]);
-        if (!discoveredCombinations.includes(combinations[combinationKey].name)) {
-          const newCombination = combinations[combinationKey];
-          setDiscoveredCombinations([...discoveredCombinations, newCombination.name]);
-          setElements([...elements, newCombination]);
-        }
-      } else if (combinations[reverseCombinationKey]) {
-        setResult(combinations[reverseCombinationKey]);
-        if (!discoveredCombinations.includes(combinations[reverseCombinationKey].name)) {
-          const newCombination = combinations[reverseCombinationKey];
-          setDiscoveredCombinations([...discoveredCombinations, newCombination.name]);
-          setElements([...elements, newCombination]);
-        }
-      } else {
-        setResult({ name: 'No combination', emoji: '🤔' });
-      }
-    } else {
-      setResult(null);
-    }
-  }, [box1, box2]);
+    const timer = setInterval(() => {
+      setEvents(currentEvents => currentEvents.map(event => ({
+        ...event,
+        timeUntil: event.date ? differenceInSeconds(new Date(event.date), new Date()) : 0
+      })));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  const handleDragStart = (e, element) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify(element));
+  const addEvent = () => {
+    setEvents([...events, { ...newEvent, date: new Date(newEvent.date).toISOString() }]);
+    setIsModalOpen(false);
+    setNewEvent({ emoji: '🎂', name: '', date: '' });
   };
 
-  const handleDrop = (e, boxSetter) => {
-    e.preventDefault();
-    const element = JSON.parse(e.dataTransfer.getData('text/plain'));
-    boxSetter(element);
+  const nextEvent = () => {
+    if (currentEventIndex < events.length - 1) setCurrentEventIndex(currentEventIndex + 1);
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
+  const prevEvent = () => {
+    if (currentEventIndex > 0) setCurrentEventIndex(currentEventIndex - 1);
   };
 
-  const resetBoxes = () => {
-    setBox1(null);
-    setBox2(null);
-    setResult(null);
-  };
+  const currentEvent = events[currentEventIndex] || { name: "No events!", timeUntil: 0 };
 
   return (
-      <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-200 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white bg-opacity-80 backdrop-blur-md">
-          <CardContent className="p-6">
-            <h1 className="text-2xl font-bold text-center my-6 text-green-800">Elemental Combination Game</h1>
-
-            <div className="flex flex-wrap justify-center gap-4 mb-8">
-              {elements.map((element) => (
-                  <div
-                      key={element.name}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, element)}
-                      className="text-4xl cursor-move hover:scale-110 transition-transform"
-                  >
-                    {element.emoji}
-                  </div>
-              ))}
-            </div>
-
-            <div className="flex justify-between items-center mb-4">
-              <div
-                  onDrop={(e) => handleDrop(e, setBox1)}
-                  onDragOver={handleDragOver}
-                  className="w-24 h-24 border-4 border-green-500 rounded-lg flex items-center justify-center text-4xl bg-white"
-              >
-                {box1 ? box1.emoji : ''}
-              </div>
-              <div className="text-2xl">+</div>
-              <div
-                  onDrop={(e) => handleDrop(e, setBox2)}
-                  onDragOver={handleDragOver}
-                  className="w-24 h-24 border-4 border-green-500 rounded-lg flex items-center justify-center text-4xl bg-white"
-              >
-                {box2 ? box2.emoji : ''}
-              </div>
-              <div className="text-2xl">=</div>
-              <div className="w-24 h-24 border-4 border-blue-500 rounded-lg flex items-center justify-center text-4xl bg-white overflow-hidden">
-                {result ? result.emoji : ''}
-              </div>
-            </div>
-
-            <p className="text-center mb-4 text-lg font-semibold text-green-700">
-              {result ? result.name : 'Combine elements!'}
-            </p>
-
-            <button
-                onClick={resetBoxes}
-                className="w-full py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-            >
-              Reset
-            </button>
-
-            <div className="mt-6">
-              <h2 className="text-xl font-semibold mb-2 text-green-800">Discovered Combinations:</h2>
-              <div className="flex flex-wrap gap-2">
-                {discoveredCombinations.map((combo, index) => (
-                    <Badge key={index} variant="secondary" className="bg-green-200 text-green-800">
-                      {combo}
-                    </Badge>
-                ))}
-              </div>
-            </div>
-
-            <p className="mt-4 text-center text-green-700">
-              {discoveredCombinations.length === Object.keys(combinations).length
-                  ? '🎉 Congratulations! You\'ve discovered all combinations!'
-                  : `Progress: ${discoveredCombinations.length}/${Object.keys(combinations).length}`}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-purple-100 p-4">
+        <CountdownWidget
+            event={currentEvent}
+            onNext={nextEvent}
+            onPrev={prevEvent}
+            canGoNext={currentEventIndex < events.length - 1}
+            canGoPrev={currentEventIndex > 0}
+        />
+        <EventInfo events={events} />
+        <Button onClick={() => setIsModalOpen(true)} className="mt-4">Add Event</Button>
+        <EventModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onAdd={addEvent}
+            event={newEvent}
+            setEvent={setNewEvent}
+        />
       </div>
   );
-};
+}
 
-export default ElementalCombinationGame;
+function CountdownWidget({ event, onNext, onPrev, canGoNext, canGoPrev }) {
+  return (
+      <Card className="w-full max-w-lg my-4">
+        <CardHeader>
+          <CardTitle className="text-4xl text-center text-indigo-600">{event.name}</CardTitle>
+        </CardHeader>
+        <CardContent className="text-center">
+          {event.timeUntil > 0 ? (
+              <div className="text-6xl font-bold text-purple-600">
+                {Math.floor(event.timeUntil / 86400)}d {Math.floor((event.timeUntil % 86400) / 3600)}h
+                {' '}{Math.floor((event.timeUntil % 3600) / 60)}m {event.timeUntil % 60}s
+              </div>
+          ) : (
+              <div className="text-4xl text-purple-600">Event has passed!</div>
+          )}
+        </CardContent>
+        <CardContent>
+          <div className="flex justify-around">
+            <Button onClick={onPrev} disabled={!canGoPrev}>Previous</Button>
+            <Button onClick={onNext} disabled={!canGoNext}>Next</Button>
+          </div>
+        </CardContent>
+      </Card>
+  );
+}
+
+function EventInfo({ events }) {
+  const todayEvents = events.filter(event => format(new Date(event.date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd'));
+  const monthEvents = events.filter(event => new Date(event.date).getMonth() === new Date().getMonth());
+
+  return (
+      <Card className="w-full max-w-lg mt-4">
+        <CardContent>
+          <h3 className="text-xl mb-2 text-indigo-600">Today's Events:</h3>
+          <ul>{todayEvents.map(e => <li key={e.name}>{e.emoji} {e.name}</li>)}</ul>
+          <p className="mt-2 text-indigo-600">Events this month: {monthEvents.length}</p>
+        </CardContent>
+      </Card>
+  );
+}
+
+function EventModal({ isOpen, onClose, onAdd, event, setEvent }) {
+  return (
+      <Modal open={isOpen} onOpenChange={onClose}>
+        <ModalContent>
+          <ModalHeader className="space-y-2">
+            <h2 className="text-2xl text-purple-700">Add New Event</h2>
+          </ModalHeader>
+          <ModalBody>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="event-name">Event Name</Label>
+                <Input id="event-name" value={event.name} onChange={e => setEvent({...event, name: e.target.value})} />
+              </div>
+              <div>
+                <Label htmlFor="event-date">Date</Label>
+                <Input id="event-date" type="date" value={event.date} onChange={e => setEvent({...event, date: e.target.value})} />
+              </div>
+              <div>
+                <Label>Emoji</Label>
+                <select
+                    value={event.emoji}
+                    onChange={e => setEvent({...event, emoji: e.target.value})}
+                    className="p-2 border rounded w-full"
+                >
+                  {emojis.map(emoji => <option key={emoji} value={emoji}>{emoji}</option>)}
+                </select>
+              </div>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onAdd}>Add Event</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+  );
+}
+
+export default App;
