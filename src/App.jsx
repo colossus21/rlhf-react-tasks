@@ -1,166 +1,108 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
 
-const GRID_SIZE = 6;
-
-const createInitialGrid = () => {
-  const grid = Array(GRID_SIZE)
-      .fill()
-      .map(() => Array(GRID_SIZE).fill(false));
-
-  // Simulate 10 random moves
-  for (let i = 0; i < 10; i++) {
-    const row = Math.floor(Math.random() * GRID_SIZE);
-    const col = Math.floor(Math.random() * GRID_SIZE);
-    toggleLights(grid, row, col);
-  }
-
-  return grid;
+const elements = {
+    Fire: '🔥', Water: '💧', Earth: '🌍', Air: '💨'
 };
 
-const toggleLights = (grid, row, col) => {
-  const directions = [
-    [0, 0],
-    [-1, 0],
-    [1, 0],
-    [0, -1],
-    [0, 1],
-  ];
-
-  directions.forEach(([dx, dy]) => {
-    const newRow = row + dx;
-    const newCol = col + dy;
-    if (
-        newRow >= 0 &&
-        newRow < GRID_SIZE &&
-        newCol >= 0 &&
-        newCol < GRID_SIZE
-    ) {
-      grid[newRow][newCol] = !grid[newRow][newCol];
-    }
-  });
+const combinations = {
+    'Fire+Water': 'Steam', 'Fire+Earth': 'Lava', 'Air+Earth': 'Dust',
+    'Water+Earth': 'Mud', 'Fire+Air': 'Energy', 'Water+Energy': 'Life'
 };
 
-const SpaceLightsOut = () => {
-  const [grid, setGrid] = useState(() => createInitialGrid());
-  const [moves, setMoves] = useState(0);
-  const [gameWon, setGameWon] = useState(false);
+function App() {
+    const [box1, setBox1] = useState(null);
+    const [box2, setBox2] = useState(null);
+    const [discovered, setDiscovered] = useState([]);
 
-  const checkWinCondition = useCallback((currentGrid) => {
-    return currentGrid.every((row) => row.every((cell) => !cell));
-  }, []);
+    const handleDrop = (boxNumber, element) => {
+        if (boxNumber === 1) setBox1(element);
+        else if (boxNumber === 2) setBox2(element);
+    };
 
-  useEffect(() => {
-    if (checkWinCondition(grid) && moves > 0) {
-      setGameWon(true);
-    }
-  }, [grid, moves, checkWinCondition]);
+    const combineElements = () => {
+        if (box1 && box2) {
+            const result = combinations[`${box1}+${box2}`] || combinations[`${box2}+${box1}`];
+            if (result && !discovered.includes(result)) {
+                setDiscovered([...discovered, result]);
+            }
+        }
+    };
 
-  const handleCellClick = (row, col) => {
-    if (gameWon) return;
+    const resetGame = () => {
+        setBox1(null);
+        setBox2(null);
+        setDiscovered([]);
+    };
 
-    setGrid((prevGrid) => {
-      const newGrid = prevGrid.map((r) => [...r]);
-      toggleLights(newGrid, row, col);
-      return newGrid;
-    });
-    setMoves((prevMoves) => prevMoves + 1);
-  };
-
-  const resetGame = () => {
-    setGrid(createInitialGrid());
-    setMoves(0);
-    setGameWon(false);
-  };
-
-  return (
-      <div className="min-h-screen bg-deep-space flex items-center justify-center">
-        <div className="stars"></div>
-        <Card className="w-[90vw] max-w-[400px] bg-opacity-80 bg-gray-900">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl font-bold text-green-400">
-              Space Lights Out
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-6 gap-1 mb-4">
-              {grid.map((row, rowIndex) =>
-                  row.map((cell, colIndex) => (
-                      <button
-                          key={`${rowIndex}-${colIndex}`}
-                          className={`w-full pt-[100%] relative ${
-                              cell ? "bg-green-400" : "bg-gray-700"
-                          } rounded-full transition-colors duration-300 hover:opacity-80`}
-                          onClick={() => handleCellClick(rowIndex, colIndex)}
-                      >
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div
-                              className={`w-3/4 h-3/4 rounded-full ${
-                                  cell ? "bg-green-300" : "bg-gray-600"
-                              } transition-colors duration-300`}
-                          ></div>
-                        </div>
-                      </button>
-                  ))
-              )}
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-green-50">
+            <h1 className="text-4xl mb-8 text-green-800">Elemental Combiner</h1>
+            <ElementDisplay elements={elements} handleDrop={handleDrop} />
+            <div className="flex space-x-4 my-4">
+                <CombinerBox id={1} content={box1} onDrop={handleDrop} />
+                <span className="text-4xl my-auto">+</span>
+                <CombinerBox id={2} content={box2} onDrop={handleDrop} />
+                <span className="text-4xl my-auto">=</span>
+                <ResultBox result={combineElements} />
             </div>
-            <div className="text-center mb-4">
-              <p className="text-green-400 text-lg">Moves: {moves}</p>
-            </div>
-            {gameWon && (
-                <div className="mt-4 text-center">
-                  <p className="text-green-400 text-xl font-bold">
-                    Congratulations! You won in {moves} moves!
-                  </p>
+            <ResetButton reset={resetGame} />
+            <ProgressReport discovered={discovered} />
+        </div>
+    );
+}
+
+function ElementDisplay({ elements, handleDrop }) {
+    return (
+        <div className="flex space-x-4">
+            {Object.entries(elements).map(([name, emoji]) => (
+                <div key={name} className="cursor-pointer" draggable="true" onDragStart={() => handleDrop(null, name)}>
+                    <span>{emoji}</span>
                 </div>
-            )}
-          </CardContent>
+            ))}
+        </div>
+    );
+}
+
+function CombiBox({ id, content, onDrop }) {
+    return (
+        <div
+            className="w-20 h-20 border-2 border-green-600 flex items-center justify-center bg-white"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => onDrop(id, content)}
+        >
+            {content && <span>{elements[content]}</span>}
+        </div>
+    );
+}
+
+function ResultBox({ result }) {
+    return (
+        <div className="w-20 h-20 border-2 border-green-600 flex items-center justify-center bg-white">
+            {result()}
+        </div>
+    );
+}
+
+function ResetButton({ reset }) {
+    return <button onClick={reset} className="mt-4 px-4 py-2 bg-red-500 text-white rounded">Reset</button>;
+}
+
+function ProgressReport({ discovered }) {
+    return (
+        <Card className="mt-4 w-96">
+            <CardContent>
+                <h2 className="text-xl">Discovered Combinations:</h2>
+                <div className="flex flex-wrap gap-2">
+                    {discovered.map(item => (
+                        <div key={item} className="bg-green-200 px-2 py-1 rounded">{item}</div>
+                    ))}
+                </div>
+                <p className="mt-2">Progress: {discovered.length}/{Object.keys(combinations).length}</p>
+                {discovered.length === Object.keys(combinations).length && <p>Congratulations! You've discovered all combinations!</p>}
+            </CardContent>
         </Card>
-      </div>
-  );
-};
-
-const App = () => {
-  return (
-      <div className="bg-deep-space min-h-screen">
-        <style jsx global>{`
-          @keyframes scroll {
-            0% {
-              transform: translateY(0);
-            }
-            100% {
-              transform: translateY(-100%);
-            }
-          }
-
-          .bg-deep-space {
-            background: linear-gradient(to bottom, #000033, #000066);
-            position: relative;
-            overflow: hidden;
-          }
-
-          .stars {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 200%;
-            background-image:
-                radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
-                radial-gradient(1px 1px at 90px 40px, #ddd, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 160px 120px, #fff, rgba(0,0,0,0));
-            background-repeat: repeat;
-            background-size: 200px 200px;
-            animation: scroll 60s linear infinite;
-            opacity: 0.3;
-          }
-        `}</style>
-        <SpaceLightsOut />
-      </div>
-  );
-};
+    );
+}
 
 export default App;
