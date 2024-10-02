@@ -1,12 +1,19 @@
 Output a self-contained .jsx React+Tailwind+Shadcn app that accomplishes the following task:
 <task>
-Can you create a game called 'Space Lights Out' with the following features, provide code plan before code:
-1. A 6x6 grid of lights representing stars in neonish green color.
-2. Clicking a panel toggles its state and the state of up, down, left and right panels. The goal is to turn off all lights.
-3. Add a move counter to track turns below the game.
-4. Use a space themed background (deep blue) with scrolling stars. Center the layout.
-5. An algorithm to simulate 10 presses randomly with all lights turned off should be created to create the initial board such that the board is solvable.
-6. Show winning message after the game is over below the game. Use no external images or sounds, use CSS for stars and scrolling backgrounds.
+Can you create game by using tailwind and shadcn with the following features:
+i) The game should show 4 elements at start: Fire, Water, Earth, and Air. Each element should have unicode symbols/emojis.
+ii) there should be 3 boxes represented like box below the elements: box 1 + box 2 = box 3. boxes should be square shaped and can hold emojis.
+iii) Player can drag elements to box 1 and box 2. Box 3 would show the combined elements. There would be a reset button below. Use emoji of the element.
+iv) Here's a list of combinations:
+Fire + Water = Steam
+Fire + Earth = Lava
+Air + Earth = Dust
+Water + Earth = Mud
+Fire + Air = Energy
+Water + Energy = Life
+v) Show a progress report of how many elements have been discovered below the combiner with a section "Discovered Combinations:" then show the discovered elements in tags. Below tags show progress i.e. 1/6. congrats the player upon finding all combinations.
+vi) Make it visually appealing by centering the container, applying borders to boxes etc.
+vii) Styles should be nature themed. Do not use external images. Emojis should be distinct.
 </task>
 
 Make sure to use React in your response. You may use components from Shadcn using “@/components” like so: import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; You are not allowed to use any other dependencies or external assets.
