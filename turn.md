@@ -176,8 +176,6 @@ iv) The list of combinations is implemented in the game logic. When two elements
 
 v) A progress report is shown below the combiner. It includes a "Discovered Combinations:" section with the discovered elements displayed as tags (using Shadcn's Badge component). The progress (e.g., "1/6") is displayed below the tags. A congratulatory message appears when all combinations are found.
 
-vi) The game is visually appealing with a centered container (Card component from Shadcn) and borders applied to the boxes. The layout is clean and organized.
-
-vii) The styles are nature-themed, using a gradient background from light green to light blue. No external images are used, and all emojis are distinct to avoid confusion.
+vi) The styles are nature-themed, using a gradient background from light green to light blue. No external images are used, and all emojis are distinct to avoid confusion.
 
 The Elemental Combination Game has been implemented as a self-contained React component using Tailwind for styling and Shadcn components for UI elements. 
