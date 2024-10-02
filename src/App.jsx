@@ -1,133 +1,155 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Card, CardContent, CardHeader, CardTitle,
-  CardFooter, CardDescription
-} from "@/components/ui/card";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-const emojis = [
-  '🎂', '🎉', '💍', '🎈', '🎁', '🍰', '🎊', '🥳', '🌟', '🎓'
-];
+const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+const getMonthName = (month) => new Date(2000, month, 1).toLocaleString('default', { month: 'long' });
 
-function Event({ event, onDelete }) {
-  return (
-      <div className="mb-2 p-2 bg-purple-100 rounded flex justify-between items-center">
-        <span>{event.emoji} {event.name}</span>
-        <Button size="icon" variant="ghost" onClick={() => onDelete(event)}>
-          ❌
-        </Button>
-      </div>
-  );
-}
+const emojis = ['🎂', '🎉', '💍', '🎓', '🏆', '🎄', '🎃', '🥳', '🍾', '💼'];
 
-function CalendarDay({ day, events, currentMonth }) {
-  const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
-  return (
-      <div className={`p-2 text-center ${!isCurrentMonth ? 'text-gray-400' : ''}`}>
-        <span>{day.getDate()}</span>
-        {events.map((event, idx) => (
-            <div key={idx} className="tooltip" data-tip={event.name}>
-              {event.emoji}
-            </div>
-        ))}
-      </div>
-  );
-}
-
-function MyEvents() {
+const MyEventsWidget = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [newEvent, setNewEvent] = useState({ emoji: '🎂', name: '', date: '', description: '' });
-  const currentDate = new Date();
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const [newEvent, setNewEvent] = useState({ name: '', emoji: '', date: '', description: '' });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const addEvent = () => {
-    if (newEvent.name && newEvent.date) {
+    if (newEvent.name && newEvent.emoji && newEvent.date) {
       setEvents([...events, { ...newEvent, date: new Date(newEvent.date) }]);
-      setOpen(false);
-      setNewEvent({ emoji: '🎂', name: '', date: '', description: '' });
+      setNewEvent({ name: '', emoji: '', date: '', description: '' });
+      setIsDialogOpen(false);
     }
   };
 
-  const deleteEvent = (eventToDelete) => {
-    setEvents(events.filter(event => event !== eventToDelete));
+  const isCurrentMonth = (date) => {
+    return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
   };
 
-  const currentMonthEvents = events.filter(event =>
-      event.date.getMonth() === currentDate.getMonth() && event.date.getFullYear() === currentDate.getFullYear()
-  );
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const eventCounts = {
+    total: events.filter(e => isCurrentMonth(e.date)).length,
+    passed: events.filter(e => isCurrentMonth(e.date) && e.date < today).length,
+    upcoming: events.filter(e => isCurrentMonth(e.date) && e.date >= today).length
+  };
+
+  const renderCalendar = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const totalDays = daysInMonth(year, month);
+    const weeks = Math.ceil((totalDays + firstDay) / 7);
+
+    return Array.from({ length: weeks }).map((_, weekIndex) => (
+        <div key={weekIndex} className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 7 }).map((_, dayIndex) => {
+            const day = weekIndex * 7 + dayIndex - firstDay + 1;
+            const currentMonthEvent = events.find(e =>
+                e.date.getDate() === day &&
+                e.date.getMonth() === month &&
+                e.date.getFullYear() === year
+            );
+
+            return (
+                <div key={dayIndex} className="h-14 border rounded-md p-1 text-xs bg-white bg-opacity-50">
+                  {day > 0 && day <= totalDays && (
+                      <Popover>
+                        <PopoverTrigger className="w-full h-full">
+                          <div className="flex flex-col items-center justify-between h-full">
+                            <span className="font-semibold">{day}</span>
+                            {currentMonthEvent && (
+                                <span className="text-lg">{currentMonthEvent.emoji}</span>
+                            )}
+                          </div>
+                        </PopoverTrigger>
+                        {currentMonthEvent && (
+                            <PopoverContent>
+                              <p className="font-semibold">{currentMonthEvent.name}</p>
+                              <p className="text-sm text-gray-500">{currentMonthEvent.date.toLocaleDateString()}</p>
+                              {currentMonthEvent.description && (
+                                  <p className="text-sm mt-2">{currentMonthEvent.description}</p>
+                              )}
+                            </PopoverContent>
+                        )}
+                      </Popover>
+                  )}
+                </div>
+            );
+          })}
+        </div>
+    ));
+  };
 
   return (
-      <div className="container mx-auto p-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>My Events</CardTitle>
+      <div className="p-4 max-w-md mx-auto">
+        <Card className="bg-gradient-to-br from-indigo-100 to-purple-100">
+          <CardHeader className="bg-indigo-200 bg-opacity-70 rounded-t-lg">
+            <CardTitle className="text-2xl font-bold text-indigo-800">My Events</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 gap-2">
-              {[...Array(daysInMonth)].map((_, index) => {
-                const day = new Date(currentDate.getFullYear(), currentDate.getMonth(), index + 1);
-                const dayEvents = events.filter(e => e.date.getDate() === day.getDate() &&
-                    e.date.getMonth() === day.getMonth());
-                return <CalendarDay key={day} day={day} events={dayEvents} currentMonth={currentDate} />;
-              })}
+          <CardContent className="space-y-6">
+            <div className="bg-indigo-50 bg-opacity-70 rounded-lg p-4 mt-4">
+              <h3 className="text-xl font-semibold mb-4 text-center text-indigo-800">
+                {getMonthName(currentDate.getMonth())} {currentDate.getFullYear()}
+              </h3>
+              {renderCalendar()}
             </div>
+            <div className="bg-purple-50 bg-opacity-70 rounded-lg p-4">
+              <h4 className="font-semibold mb-2 text-purple-800">Event Summary for {getMonthName(currentDate.getMonth())}</h4>
+              <p className="text-indigo-700">Passed events this month: {eventCounts.passed}</p>
+              <p className="text-indigo-700">Upcoming events this month: {eventCounts.upcoming}</p>
+              <p className="text-indigo-700">Total events this month: {eventCounts.total}</p>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">Add New Event</Button>
+              </DialogTrigger>
+              <DialogContent className="bg-purple-50">
+                <DialogHeader>
+                  <DialogTitle className="text-indigo-800">Add New Event</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <Input
+                      placeholder="Event name"
+                      value={newEvent.name}
+                      onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
+                      className="bg-white"
+                  />
+                  <Select onValueChange={(value) => setNewEvent({ ...newEvent, emoji: value })}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Select emoji" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {emojis.map((emoji) => (
+                          <SelectItem key={emoji} value={emoji}>{emoji}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                      type="date"
+                      value={newEvent.date}
+                      onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                      className="bg-white"
+                  />
+                  <Textarea
+                      placeholder="Event description"
+                      value={newEvent.description}
+                      onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                      className="bg-white"
+                  />
+                  <Button onClick={addEvent} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">Add Event</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </CardContent>
-          <CardFooter>
-            <p>Events this month: {currentMonthEvents.length}</p>
-            <p>Upcoming: {currentMonthEvents.filter(e => e.date > currentDate).length}</p>
-            <p>Passed: {currentMonthEvents.filter(e => e.date <= currentDate).length}</p>
-          </CardFooter>
         </Card>
-
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="mt-4">Add Event</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <h2>Add New Event</h2>
-            </DialogHeader>
-            <Input
-                value={newEvent.name}
-                onChange={e => setNewEvent({...newEvent, name: e.target.value})}
-                placeholder="Event Name"
-            />
-            <Select onValueChange={emoji => setNewEvent({...newEvent, emoji})}>
-              <SelectTrigger className="w-full mt-2">
-                <SelectValue placeholder="Select an emoji" />
-              </SelectTrigger>
-              <SelectContent>
-                {emojis.map(emoji => <SelectItem key={emoji} value={emoji}>{emoji}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Input
-                type="date"
-                className="mt-2"
-                value={newEvent.date}
-                onChange={e => setNewEvent({...newEvent, date: e.target.value})}
-            />
-            <Textarea
-                className="mt-2"
-                value={newEvent.description}
-                onChange={e => setNewEvent({...newEvent, description: e.target.value})}
-                placeholder="Description"
-            />
-            <Button onClick={addEvent} className="mt-2">Save Event</Button>
-          </DialogContent>
-        </Dialog>
-
-        <div className="mt-4">
-          {currentMonthEvents.map(event => <Event key={event.name} event={event} onDelete={deleteEvent} />)}
-        </div>
       </div>
   );
-}
+};
 
-export default function App() {
-  return <MyEvents />;
-}
+export default MyEventsWidget;
