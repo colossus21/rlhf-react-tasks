@@ -1,133 +1,101 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Card, CardContent, CardHeader, CardTitle,
-  CardFooter, CardDescription
-} from "@/components/ui/card";
+import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 
-const emojis = [
-  '🎂', '🎉', '💍', '🎈', '🎁', '🍰', '🎊', '🥳', '🌟', '🎓'
-];
+const App = () => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [hasPermission, setHasPermission] = useState(null);
+  const [recordings, setRecordings] = useState([]);
+  const [error, setError] = useState(null);
+  const mediaRecorder = useRef(null);
 
-function Event({ event, onDelete }) {
-  return (
-      <div className="mb-2 p-2 bg-purple-100 rounded flex justify-between items-center">
-        <span>{event.emoji} {event.name}</span>
-        <Button size="icon" variant="ghost" onClick={() => onDelete(event)}>
-          ❌
-        </Button>
-      </div>
-  );
-}
-
-function CalendarDay({ day, events, currentMonth }) {
-  const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
-  return (
-      <div className={`p-2 text-center ${!isCurrentMonth ? 'text-gray-400' : ''}`}>
-        <span>{day.getDate()}</span>
-        {events.map((event, idx) => (
-            <div key={idx} className="tooltip" data-tip={event.name}>
-              {event.emoji}
-            </div>
-        ))}
-      </div>
-  );
-}
-
-function MyEvents() {
-  const [events, setEvents] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [newEvent, setNewEvent] = useState({ emoji: '🎂', name: '', date: '', description: '' });
-  const currentDate = new Date();
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-
-  const addEvent = () => {
-    if (newEvent.name && newEvent.date) {
-      setEvents([...events, { ...newEvent, date: new Date(newEvent.date) }]);
-      setOpen(false);
-      setNewEvent({ emoji: '🎂', name: '', date: '', description: '' });
+  // Request permission and initialize recorder
+  const initializeRecorder = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder.current = new MediaRecorder(stream);
+      mediaRecorder.current.onstart = () => setIsRecording(true);
+      mediaRecorder.current.ondataavailable = handleDataAvailable;
+      mediaRecorder.current.onstop = handleStop;
+      setHasPermission(true);
+    } catch (err) {
+      setHasPermission(false);
+      setError("Microphone permission denied.");
     }
   };
 
-  const deleteEvent = (eventToDelete) => {
-    setEvents(events.filter(event => event !== eventToDelete));
+  const startRecording = () => {
+    if (!hasPermission) {
+      initializeRecorder();
+    } else if (mediaRecorder.current.state === "inactive") {
+      mediaRecorder.current.start();
+    }
   };
 
-  const currentMonthEvents = events.filter(event =>
-      event.date.getMonth() === currentDate.getMonth() && event.date.getFullYear() === currentDate.getFullYear()
-  );
+  const stopRecording = () => {
+    if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
+      mediaRecorder.current.stop();
+    }
+  };
+
+  const handleDataAvailable = (event) => {
+    if (event.data.size > 0) {
+      const blob = new Blob([event.data], { type: 'audio/webm' });
+      setRecordings(prev => [...prev, { blob, date: new Date() }]);
+    }
+  };
+
+  const handleStop = () => {
+    setIsRecording(false);
+  };
+
+  const downloadRecording = (blob, index) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `recording_${index}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const deleteRecording = (index) => {
+    setRecordings(recordings.filter((_, i) => i !== index));
+  };
 
   return (
-      <div className="container mx-auto p-4">
-        <Card>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4 sm:p-8">
+        <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>My Events</CardTitle>
+            <CardTitle>Sound Recorder</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 gap-2">
-              {[...Array(daysInMonth)].map((_, index) => {
-                const day = new Date(currentDate.getFullYear(), currentDate.getMonth(), index + 1);
-                const dayEvents = events.filter(e => e.date.getDate() === day.getDate() &&
-                    e.date.getMonth() === day.getMonth());
-                return <CalendarDay key={day} day={day} events={dayEvents} currentMonth={currentDate} />;
-              })}
-            </div>
+          <CardContent className="text-center">
+            {error && <div className="mb-4 p-2 border border-red-500 text-red-500">{error}</div>}
+            <Button
+                onClick={isRecording ? stopRecording : startRecording}
+                className={`${isRecording ? 'bg-green-500' : 'bg-red-500'} text-white`}>
+              {isRecording ? "Recording..." : "Press to Record"}
+            </Button>
           </CardContent>
-          <CardFooter>
-            <p>Events this month: {currentMonthEvents.length}</p>
-            <p>Upcoming: {currentMonthEvents.filter(e => e.date > currentDate).length}</p>
-            <p>Passed: {currentMonthEvents.filter(e => e.date <= currentDate).length}</p>
-          </CardFooter>
         </Card>
 
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="mt-4">Add Event</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <h2>Add New Event</h2>
-            </DialogHeader>
-            <Input
-                value={newEvent.name}
-                onChange={e => setNewEvent({...newEvent, name: e.target.value})}
-                placeholder="Event Name"
-            />
-            <Select onValueChange={emoji => setNewEvent({...newEvent, emoji})}>
-              <SelectTrigger className="w-full mt-2">
-                <SelectValue placeholder="Select an emoji" />
-              </SelectTrigger>
-              <SelectContent>
-                {emojis.map(emoji => <SelectItem key={emoji} value={emoji}>{emoji}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Input
-                type="date"
-                className="mt-2"
-                value={newEvent.date}
-                onChange={e => setNewEvent({...newEvent, date: e.target.value})}
-            />
-            <Textarea
-                className="mt-2"
-                value={newEvent.description}
-                onChange={e => setNewEvent({...newEvent, description: e.target.value})}
-                placeholder="Description"
-            />
-            <Button onClick={addEvent} className="mt-2">Save Event</Button>
-          </DialogContent>
-        </Dialog>
-
-        <div className="mt-4">
-          {currentMonthEvents.map(event => <Event key={event.name} event={event} onDelete={deleteEvent} />)}
+        <div className="mt-4 w-full max-w-md">
+          <h2 className="mb-2 text-lg font-semibold">Recordings</h2>
+          {recordings.map((recording, index) => (
+              <Card key={index} className="mb-2">
+                <CardContent>
+                  <div>Recording {index + 1}</div>
+                  <div>{recording.date.toLocaleString()}</div>
+                  <audio controls src={URL.createObjectURL(recording.blob)} className="mt-2 w-full"/>
+                  <Button variant="destructive" size="sm" onClick={() => deleteRecording(index)} className="mt-2 mr-2">Delete</Button>
+                  <Button size="sm" onClick={() => downloadRecording(recording.blob, index)}>Download</Button>
+                </CardContent>
+              </Card>
+          ))}
         </div>
       </div>
   );
-}
+};
 
-export default function App() {
-  return <MyEvents />;
-}
+export default App;
