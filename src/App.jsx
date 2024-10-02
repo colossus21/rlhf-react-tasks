@@ -1,162 +1,129 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash, Download, Mic, StopCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export default function App() {
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordings, setRecordings] = useState([]);
-  const [permissionGranted, setPermissionGranted] = useState(false);
-  const [error, setError] = useState(null);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+const initialBoard = Array(36).fill(false);
+
+function App() {
+  const [board, setBoard] = useState([]);
+  const [moves, setMoves] = useState(0);
+  const [isWon, setIsWon] = useState(false);
 
   useEffect(() => {
-    requestMicrophonePermission();
+    resetGame();
   }, []);
 
-  const requestMicrophonePermission = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setPermissionGranted(true);
-      stream.getTracks().forEach(track => track.stop());
-      setError(null);
-    } catch (err) {
-      console.error("Error accessing the microphone", err);
-      setPermissionGranted(false);
-      setError("Microphone access denied. Please grant permission to use the recorder.");
+  useEffect(() => {
+    if (board.every(light => !light)) {
+      setIsWon(true);
     }
+  }, [board]);
+
+  const toggleLight = (index) => {
+    if (isWon) return;
+    const newBoard = [...board];
+    const toggle = (i) => newBoard[i] = !newBoard[i];
+
+    toggle(index);
+    if (index % 6 !== 0) toggle(index - 1); // Left
+    if (index % 6 !== 5) toggle(index + 1); // Right
+    if (index >= 6) toggle(index - 6); // Up
+    if (index < 30) toggle(index + 6); // Down
+
+    setBoard(newBoard);
+    setMoves(prev => prev + 1);
   };
 
-  const startRecording = async () => {
-    if (!permissionGranted) {
-      await requestMicrophonePermission();
-      if (!permissionGranted) return;
+  const scrambleBoard = () => {
+    let scrambled = [...initialBoard];
+    for (let i = 0; i < 10; i++) {
+      const randomIndex = Math.floor(Math.random() * 36);
+      toggleLight(randomIndex);
     }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setRecordings(prev => [...prev, {
-          url: audioUrl,
-          name: `Recording ${prev.length + 1}`,
-          timestamp: new Date().toLocaleString()
-        }]);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      setError(null);
-    } catch (err) {
-      console.error("Error starting recording", err);
-      setError("Failed to start recording. Please try again.");
-    }
+    return scrambled;
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
-  const deleteRecording = (index) => {
-    setRecordings(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const downloadRecording = (url, name) => {
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = `${name}.webm`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const resetGame = () => {
+    setBoard(scrambleBoard());
+    setMoves(0);
+    setIsWon(false);
   };
 
   return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start pt-10 px-4 sm:px-6">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-deep-space flex items-center justify-center">
+        <div className="stars"></div>
+        <Card className="w-full max-w-sm p-4 bg-space-blue">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Sound Recorder</CardTitle>
+            <CardTitle>Space Lights Out</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            )}
-            <Button
-                onClick={toggleRecording}
-                className={`w-32 h-32 rounded-full text-white font-bold transition-colors duration-300 ${
-                    isRecording ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-                }`}
-            >
-              {isRecording ? (
-                  <>
-                    <StopCircle className="mr-2" />
-                    Recording...
-                  </>
-              ) : (
-                  <>
-                    <Mic className="mr-2" />
-                    Press to record
-                  </>
-              )}
-            </Button>
-
-            {recordings.length > 0 && (
-                <div className="mt-8 w-full">
-                  <h2 className="text-xl font-semibold mb-4">Recordings</h2>
-                  <ul className="space-y-4">
-                    {recordings.map((recording, index) => (
-                        <li key={index} className="bg-white p-4 rounded-lg shadow">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">{recording.name}</span>
-                            <span className="text-sm text-gray-500">{recording.timestamp}</span>
-                          </div>
-                          <audio src={recording.url} controls className="w-full mb-2" />
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                                onClick={() => deleteRecording(index)}
-                                variant="destructive"
-                                size="sm"
-                            >
-                              <Trash className="w-4 h-4" />
-                            </Button>
-                            <Button
-                                onClick={() => downloadRecording(recording.url, recording.name)}
-                                variant="outline"
-                                size="sm"
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </li>
-                    ))}
-                  </ul>
-                </div>
-            )}
+          <CardContent className="p-0">
+            <Board board={board} onToggle={toggleLight} />
+            <MoveCounter moves={moves} />
           </CardContent>
+          {isWon && <WinMessage onReset={resetGame} />}
         </Card>
       </div>
   );
 }
+
+function Board({ board, onToggle }) {
+  return (
+      <div className="grid grid-cols-6 gap-1">
+        {board.map((light, index) => (
+            <div
+                key={index}
+                className={`h-8 w-8 rounded ${light ? 'bg-neon-green' : 'bg-dark-space'} cursor-pointer`}
+                onClick={() => onToggle(index)}
+            ></div>
+        ))}
+      </div>
+  );
+}
+
+function MoveCounter({ moves }) {
+  return <p className="text-center mt-4 text-neon-green">Moves: {moves}</p>;
+}
+
+function WinMessage({ onReset }) {
+  return (
+      <div className="mt-4 text-center">
+        <p className="text-xl text-neon-green">You've restored the night sky!</p>
+        <button onClick={onReset} className="mt-2 px-4 py-2 bg-neon-green text-space-blue rounded">Play Again</button>
+      </div>
+  );
+}
+
+export default App;
+
+// CSS for background animation
+const styles = `
+@keyframes move-twink-back {
+  from {background-position:0 0;}
+  to {background-position:-10000px 5000px;}
+}
+
+.bg-deep-space {
+  background: #00001a;
+}
+
+.stars, .twinkling {
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.stars {
+  background:#00001a url(data:image/png;base64,...) repeat top center;
+  z-index:0;
+  animation:move-twink-back 200s linear infinite;
+}
+`;
+
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
