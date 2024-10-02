@@ -1,133 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Card, CardContent, CardHeader, CardTitle,
-  CardFooter, CardDescription
-} from "@/components/ui/card";
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trash, Download, Mic, StopCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const emojis = [
-  '🎂', '🎉', '💍', '🎈', '🎁', '🍰', '🎊', '🥳', '🌟', '🎓'
-];
+export default function App() {
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordings, setRecordings] = useState([]);
+  const [permissionGranted, setPermissionGranted] = useState(false);
+  const [error, setError] = useState(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
-function Event({ event, onDelete }) {
-  return (
-      <div className="mb-2 p-2 bg-purple-100 rounded flex justify-between items-center">
-        <span>{event.emoji} {event.name}</span>
-        <Button size="icon" variant="ghost" onClick={() => onDelete(event)}>
-          ❌
-        </Button>
-      </div>
-  );
-}
+  useEffect(() => {
+    requestMicrophonePermission();
+  }, []);
 
-function CalendarDay({ day, events, currentMonth }) {
-  const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
-  return (
-      <div className={`p-2 text-center ${!isCurrentMonth ? 'text-gray-400' : ''}`}>
-        <span>{day.getDate()}</span>
-        {events.map((event, idx) => (
-            <div key={idx} className="tooltip" data-tip={event.name}>
-              {event.emoji}
-            </div>
-        ))}
-      </div>
-  );
-}
-
-function MyEvents() {
-  const [events, setEvents] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [newEvent, setNewEvent] = useState({ emoji: '🎂', name: '', date: '', description: '' });
-  const currentDate = new Date();
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-
-  const addEvent = () => {
-    if (newEvent.name && newEvent.date) {
-      setEvents([...events, { ...newEvent, date: new Date(newEvent.date) }]);
-      setOpen(false);
-      setNewEvent({ emoji: '🎂', name: '', date: '', description: '' });
+  const requestMicrophonePermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setPermissionGranted(true);
+      stream.getTracks().forEach(track => track.stop());
+      setError(null);
+    } catch (err) {
+      console.error("Error accessing the microphone", err);
+      setPermissionGranted(false);
+      setError("Microphone access denied. Please grant permission to use the recorder.");
     }
   };
 
-  const deleteEvent = (eventToDelete) => {
-    setEvents(events.filter(event => event !== eventToDelete));
+  const startRecording = async () => {
+    if (!permissionGranted) {
+      await requestMicrophonePermission();
+      if (!permissionGranted) return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setRecordings(prev => [...prev, {
+          url: audioUrl,
+          name: `Recording ${prev.length + 1}`,
+          timestamp: new Date().toLocaleString()
+        }]);
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setError(null);
+    } catch (err) {
+      console.error("Error starting recording", err);
+      setError("Failed to start recording. Please try again.");
+    }
   };
 
-  const currentMonthEvents = events.filter(event =>
-      event.date.getMonth() === currentDate.getMonth() && event.date.getFullYear() === currentDate.getFullYear()
-  );
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const deleteRecording = (index) => {
+    setRecordings(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const downloadRecording = (url, name) => {
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `${name}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   return (
-      <div className="container mx-auto p-4">
-        <Card>
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start pt-10 px-4 sm:px-6">
+        <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>My Events</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">Sound Recorder</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 gap-2">
-              {[...Array(daysInMonth)].map((_, index) => {
-                const day = new Date(currentDate.getFullYear(), currentDate.getMonth(), index + 1);
-                const dayEvents = events.filter(e => e.date.getDate() === day.getDate() &&
-                    e.date.getMonth() === day.getMonth());
-                return <CalendarDay key={day} day={day} events={dayEvents} currentMonth={currentDate} />;
-              })}
-            </div>
+          <CardContent className="flex flex-col items-center">
+            {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
+            <Button
+                onClick={toggleRecording}
+                className={`w-32 h-32 rounded-full text-white font-bold transition-colors duration-300 ${
+                    isRecording ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                }`}
+            >
+              {isRecording ? (
+                  <>
+                    <StopCircle className="mr-2" />
+                    Recording...
+                  </>
+              ) : (
+                  <>
+                    <Mic className="mr-2" />
+                    Press to record
+                  </>
+              )}
+            </Button>
+
+            {recordings.length > 0 && (
+                <div className="mt-8 w-full">
+                  <h2 className="text-xl font-semibold mb-4">Recordings</h2>
+                  <ul className="space-y-4">
+                    {recordings.map((recording, index) => (
+                        <li key={index} className="bg-white p-4 rounded-lg shadow">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">{recording.name}</span>
+                            <span className="text-sm text-gray-500">{recording.timestamp}</span>
+                          </div>
+                          <audio src={recording.url} controls className="w-full mb-2" />
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                                onClick={() => deleteRecording(index)}
+                                variant="destructive"
+                                size="sm"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </Button>
+                            <Button
+                                onClick={() => downloadRecording(recording.url, recording.name)}
+                                variant="outline"
+                                size="sm"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </li>
+                    ))}
+                  </ul>
+                </div>
+            )}
           </CardContent>
-          <CardFooter>
-            <p>Events this month: {currentMonthEvents.length}</p>
-            <p>Upcoming: {currentMonthEvents.filter(e => e.date > currentDate).length}</p>
-            <p>Passed: {currentMonthEvents.filter(e => e.date <= currentDate).length}</p>
-          </CardFooter>
         </Card>
-
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="mt-4">Add Event</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <h2>Add New Event</h2>
-            </DialogHeader>
-            <Input
-                value={newEvent.name}
-                onChange={e => setNewEvent({...newEvent, name: e.target.value})}
-                placeholder="Event Name"
-            />
-            <Select onValueChange={emoji => setNewEvent({...newEvent, emoji})}>
-              <SelectTrigger className="w-full mt-2">
-                <SelectValue placeholder="Select an emoji" />
-              </SelectTrigger>
-              <SelectContent>
-                {emojis.map(emoji => <SelectItem key={emoji} value={emoji}>{emoji}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Input
-                type="date"
-                className="mt-2"
-                value={newEvent.date}
-                onChange={e => setNewEvent({...newEvent, date: e.target.value})}
-            />
-            <Textarea
-                className="mt-2"
-                value={newEvent.description}
-                onChange={e => setNewEvent({...newEvent, description: e.target.value})}
-                placeholder="Description"
-            />
-            <Button onClick={addEvent} className="mt-2">Save Event</Button>
-          </DialogContent>
-        </Dialog>
-
-        <div className="mt-4">
-          {currentMonthEvents.map(event => <Event key={event.name} event={event} onDelete={deleteEvent} />)}
-        </div>
       </div>
   );
-}
-
-export default function App() {
-  return <MyEvents />;
 }
