@@ -1,162 +1,166 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash, Download, Mic, StopCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export default function App() {
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordings, setRecordings] = useState([]);
-  const [permissionGranted, setPermissionGranted] = useState(false);
-  const [error, setError] = useState(null);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+const GRID_SIZE = 6;
 
-  useEffect(() => {
-    requestMicrophonePermission();
+const createInitialGrid = () => {
+  const grid = Array(GRID_SIZE)
+      .fill()
+      .map(() => Array(GRID_SIZE).fill(false));
+
+  // Simulate 10 random moves
+  for (let i = 0; i < 10; i++) {
+    const row = Math.floor(Math.random() * GRID_SIZE);
+    const col = Math.floor(Math.random() * GRID_SIZE);
+    toggleLights(grid, row, col);
+  }
+
+  return grid;
+};
+
+const toggleLights = (grid, row, col) => {
+  const directions = [
+    [0, 0],
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ];
+
+  directions.forEach(([dx, dy]) => {
+    const newRow = row + dx;
+    const newCol = col + dy;
+    if (
+        newRow >= 0 &&
+        newRow < GRID_SIZE &&
+        newCol >= 0 &&
+        newCol < GRID_SIZE
+    ) {
+      grid[newRow][newCol] = !grid[newRow][newCol];
+    }
+  });
+};
+
+const SpaceLightsOut = () => {
+  const [grid, setGrid] = useState(() => createInitialGrid());
+  const [moves, setMoves] = useState(0);
+  const [gameWon, setGameWon] = useState(false);
+
+  const checkWinCondition = useCallback((currentGrid) => {
+    return currentGrid.every((row) => row.every((cell) => !cell));
   }, []);
 
-  const requestMicrophonePermission = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setPermissionGranted(true);
-      stream.getTracks().forEach(track => track.stop());
-      setError(null);
-    } catch (err) {
-      console.error("Error accessing the microphone", err);
-      setPermissionGranted(false);
-      setError("Microphone access denied. Please grant permission to use the recorder.");
+  useEffect(() => {
+    if (checkWinCondition(grid) && moves > 0) {
+      setGameWon(true);
     }
+  }, [grid, moves, checkWinCondition]);
+
+  const handleCellClick = (row, col) => {
+    if (gameWon) return;
+
+    setGrid((prevGrid) => {
+      const newGrid = prevGrid.map((r) => [...r]);
+      toggleLights(newGrid, row, col);
+      return newGrid;
+    });
+    setMoves((prevMoves) => prevMoves + 1);
   };
 
-  const startRecording = async () => {
-    if (!permissionGranted) {
-      await requestMicrophonePermission();
-      if (!permissionGranted) return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setRecordings(prev => [...prev, {
-          url: audioUrl,
-          name: `Recording ${prev.length + 1}`,
-          timestamp: new Date().toLocaleString()
-        }]);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      setError(null);
-    } catch (err) {
-      console.error("Error starting recording", err);
-      setError("Failed to start recording. Please try again.");
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
-  const deleteRecording = (index) => {
-    setRecordings(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const downloadRecording = (url, name) => {
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = `${name}.webm`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const resetGame = () => {
+    setGrid(createInitialGrid());
+    setMoves(0);
+    setGameWon(false);
   };
 
   return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start pt-10 px-4 sm:px-6">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-deep-space flex items-center justify-center">
+        <div className="stars"></div>
+        <Card className="w-[90vw] max-w-[400px] bg-opacity-80 bg-gray-900">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">Sound Recorder</CardTitle>
+            <CardTitle className="text-center text-2xl font-bold text-green-400">
+              Space Lights Out
+            </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col items-center">
-            {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            )}
-            <Button
-                onClick={toggleRecording}
-                className={`w-32 h-32 rounded-full text-white font-bold transition-colors duration-300 ${
-                    isRecording ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-                }`}
-            >
-              {isRecording ? (
-                  <>
-                    <StopCircle className="mr-2" />
-                    Recording...
-                  </>
-              ) : (
-                  <>
-                    <Mic className="mr-2" />
-                    Press to record
-                  </>
+          <CardContent>
+            <div className="grid grid-cols-6 gap-1 mb-4">
+              {grid.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => (
+                      <button
+                          key={`${rowIndex}-${colIndex}`}
+                          className={`w-full pt-[100%] relative ${
+                              cell ? "bg-green-400" : "bg-gray-700"
+                          } rounded-full transition-colors duration-300 hover:opacity-80`}
+                          onClick={() => handleCellClick(rowIndex, colIndex)}
+                      >
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div
+                              className={`w-3/4 h-3/4 rounded-full ${
+                                  cell ? "bg-green-300" : "bg-gray-600"
+                              } transition-colors duration-300`}
+                          ></div>
+                        </div>
+                      </button>
+                  ))
               )}
-            </Button>
-
-            {recordings.length > 0 && (
-                <div className="mt-8 w-full">
-                  <h2 className="text-xl font-semibold mb-4">Recordings</h2>
-                  <ul className="space-y-4">
-                    {recordings.map((recording, index) => (
-                        <li key={index} className="bg-white p-4 rounded-lg shadow">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium">{recording.name}</span>
-                            <span className="text-sm text-gray-500">{recording.timestamp}</span>
-                          </div>
-                          <audio src={recording.url} controls className="w-full mb-2" />
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                                onClick={() => deleteRecording(index)}
-                                variant="destructive"
-                                size="sm"
-                            >
-                              <Trash className="w-4 h-4" />
-                            </Button>
-                            <Button
-                                onClick={() => downloadRecording(recording.url, recording.name)}
-                                variant="outline"
-                                size="sm"
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </li>
-                    ))}
-                  </ul>
+            </div>
+            <div className="text-center mb-4">
+              <p className="text-green-400 text-lg">Moves: {moves}</p>
+            </div>
+            {gameWon && (
+                <div className="mt-4 text-center">
+                  <p className="text-green-400 text-xl font-bold">
+                    Congratulations! You won in {moves} moves!
+                  </p>
                 </div>
             )}
           </CardContent>
         </Card>
       </div>
   );
-}
+};
+
+const App = () => {
+  return (
+      <div className="bg-deep-space min-h-screen">
+        <style jsx global>{`
+          @keyframes scroll {
+            0% {
+              transform: translateY(0);
+            }
+            100% {
+              transform: translateY(-100%);
+            }
+          }
+
+          .bg-deep-space {
+            background: linear-gradient(to bottom, #000033, #000066);
+            position: relative;
+            overflow: hidden;
+          }
+
+          .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 200%;
+            background-image:
+                radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 90px 40px, #ddd, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 160px 120px, #fff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 200px 200px;
+            animation: scroll 60s linear infinite;
+            opacity: 0.3;
+          }
+        `}</style>
+        <SpaceLightsOut />
+      </div>
+  );
+};
+
+export default App;
