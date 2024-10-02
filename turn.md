@@ -1,192 +1,183 @@
 ### Code Plan
 
-1. Set up the main App component and `SpaceLightsOut` game component
-2. Create utility functions for grid initialization and light toggling
-3. Implement state management using React hooks (`useState`, `useEffect`, `useCallback`)
-4. Design the game board UI using Tailwind CSS and Shadcn components
-5. Implement game logic for light toggling and win condition checking
-6. Add move counter and reset button functionality
-7. Create space-themed background with scrolling stars using CSS animations
-8. Implement responsive design for mobile compatibility
+1. Set up the basic React component structure
+2. Define state variables for elements, combinations, boxes, and discovered combinations
+3. Implement drag and drop functionality
+4. Create the game layout using Tailwind and Shadcn components
+5. Implement the combination logic
+6. Add a reset button
+7. Display the progress report and discovered combinations
+8. Style the game with a nature theme
+9. Ensure mobile responsiveness
+10. Optimize and refactor to keep the code under 500 lines
 
 ### Code
 
 ```jsx
-import React, { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
-const GRID_SIZE = 6;
+const initialElements = [
+  { name: 'Fire', emoji: '🔥' },
+  { name: 'Water', emoji: '💧' },
+  { name: 'Earth', emoji: '🌎' },
+  { name: 'Air', emoji: '🌪️' },
+];
 
-const createInitialGrid = () => {
-    const grid = Array(GRID_SIZE)
-        .fill()
-        .map(() => Array(GRID_SIZE).fill(false));
+const combinations = {
+  'Fire💧': { name: 'Steam', emoji: '☁️' },
+  'Fire🌎': { name: 'Lava', emoji: '🌋' },
+  'Air🌎': { name: 'Dust', emoji: '💨' },
+  'Water🌎': { name: 'Mud', emoji: '💩' },
+  'Fire🌪️': { name: 'Energy', emoji: '⚡' },
+  'Water⚡': { name: 'Life', emoji: '🌱' },
+};
 
-    // Simulate 10 random moves
-    for (let i = 0; i < 10; i++) {
-        const row = Math.floor(Math.random() * GRID_SIZE);
-        const col = Math.floor(Math.random() * GRID_SIZE);
-        toggleLights(grid, row, col);
+const ElementalCombinationGame = () => {
+  const [elements, setElements] = useState(initialElements);
+  const [box1, setBox1] = useState(null);
+  const [box2, setBox2] = useState(null);
+  const [result, setResult] = useState(null);
+  const [discoveredCombinations, setDiscoveredCombinations] = useState([]);
+
+  useEffect(() => {
+    if (box1 && box2) {
+      const combinationKey = box1.name + box2.emoji;
+      const reverseCombinationKey = box2.name + box1.emoji;
+      if (combinations[combinationKey]) {
+        setResult(combinations[combinationKey]);
+        if (!discoveredCombinations.includes(combinations[combinationKey].name)) {
+          const newCombination = combinations[combinationKey];
+          setDiscoveredCombinations([...discoveredCombinations, newCombination.name]);
+          setElements([...elements, newCombination]);
+        }
+      } else if (combinations[reverseCombinationKey]) {
+        setResult(combinations[reverseCombinationKey]);
+        if (!discoveredCombinations.includes(combinations[reverseCombinationKey].name)) {
+          const newCombination = combinations[reverseCombinationKey];
+          setDiscoveredCombinations([...discoveredCombinations, newCombination.name]);
+          setElements([...elements, newCombination]);
+        }
+      } else {
+        setResult({ name: 'No combination', emoji: '🤔' });
+      }
+    } else {
+      setResult(null);
     }
+  }, [box1, box2]);
 
-    return grid;
+  const handleDragStart = (e, element) => {
+    e.dataTransfer.setData('text/plain', JSON.stringify(element));
+  };
+
+  const handleDrop = (e, boxSetter) => {
+    e.preventDefault();
+    const element = JSON.parse(e.dataTransfer.getData('text/plain'));
+    boxSetter(element);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const resetBoxes = () => {
+    setBox1(null);
+    setBox2(null);
+    setResult(null);
+  };
+
+  return (
+      <div className="min-h-screen bg-gradient-to-b from-green-100 to-blue-200 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white bg-opacity-80 backdrop-blur-md">
+          <CardContent className="p-6">
+            <h1 className="text-2xl font-bold text-center my-6 text-green-800">Elemental Combination Game</h1>
+
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
+              {elements.map((element) => (
+                  <div
+                      key={element.name}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, element)}
+                      className="text-4xl cursor-move hover:scale-110 transition-transform"
+                  >
+                    {element.emoji}
+                  </div>
+              ))}
+            </div>
+
+            <div className="flex justify-between items-center mb-4">
+              <div
+                  onDrop={(e) => handleDrop(e, setBox1)}
+                  onDragOver={handleDragOver}
+                  className="w-24 h-24 border-4 border-green-500 rounded-lg flex items-center justify-center text-4xl bg-white"
+              >
+                {box1 ? box1.emoji : ''}
+              </div>
+              <div className="text-2xl">+</div>
+              <div
+                  onDrop={(e) => handleDrop(e, setBox2)}
+                  onDragOver={handleDragOver}
+                  className="w-24 h-24 border-4 border-green-500 rounded-lg flex items-center justify-center text-4xl bg-white"
+              >
+                {box2 ? box2.emoji : ''}
+              </div>
+              <div className="text-2xl">=</div>
+              <div className="w-24 h-24 border-4 border-blue-500 rounded-lg flex items-center justify-center text-4xl bg-white overflow-hidden">
+                {result ? result.emoji : ''}
+              </div>
+            </div>
+
+            <p className="text-center mb-4 text-lg font-semibold text-green-700">
+              {result ? result.name : 'Combine elements!'}
+            </p>
+
+            <button
+                onClick={resetBoxes}
+                className="w-full py-2 px-4 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+            >
+              Reset
+            </button>
+
+            <div className="mt-6">
+              <h2 className="text-xl font-semibold mb-2 text-green-800">Discovered Combinations:</h2>
+              <div className="flex flex-wrap gap-2">
+                {discoveredCombinations.map((combo, index) => (
+                    <Badge key={index} variant="secondary" className="bg-green-200 text-green-800">
+                      {combo}
+                    </Badge>
+                ))}
+              </div>
+            </div>
+
+            <p className="mt-4 text-center text-green-700">
+              {discoveredCombinations.length === Object.keys(combinations).length
+                  ? '🎉 Congratulations! You\'ve discovered all combinations!'
+                  : `Progress: ${discoveredCombinations.length}/${Object.keys(combinations).length}`}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+  );
 };
 
-const toggleLights = (grid, row, col) => {
-    const directions = [
-        [0, 0],
-        [-1, 0],
-        [1, 0],
-        [0, -1],
-        [0, 1],
-    ];
-
-    directions.forEach(([dx, dy]) => {
-        const newRow = row + dx;
-        const newCol = col + dy;
-        if (
-            newRow >= 0 &&
-            newRow < GRID_SIZE &&
-            newCol >= 0 &&
-            newCol < GRID_SIZE
-        ) {
-            grid[newRow][newCol] = !grid[newRow][newCol];
-        }
-    });
-};
-
-const SpaceLightsOut = () => {
-    const [grid, setGrid] = useState(() => createInitialGrid());
-    const [moves, setMoves] = useState(0);
-    const [gameWon, setGameWon] = useState(false);
-
-    const checkWinCondition = useCallback((currentGrid) => {
-        return currentGrid.every((row) => row.every((cell) => !cell));
-    }, []);
-
-    useEffect(() => {
-        if (checkWinCondition(grid) && moves > 0) {
-            setGameWon(true);
-        }
-    }, [grid, moves, checkWinCondition]);
-
-    const handleCellClick = (row, col) => {
-        if (gameWon) return;
-
-        setGrid((prevGrid) => {
-            const newGrid = prevGrid.map((r) => [...r]);
-            toggleLights(newGrid, row, col);
-            return newGrid;
-        });
-        setMoves((prevMoves) => prevMoves + 1);
-    };
-
-    const resetGame = () => {
-        setGrid(createInitialGrid());
-        setMoves(0);
-        setGameWon(false);
-    };
-
-    return (
-        <div className="min-h-screen bg-deep-space flex items-center justify-center">
-            <div className="stars"></div>
-            <Card className="w-[90vw] max-w-[400px] bg-opacity-80 bg-gray-900">
-                <CardHeader>
-                    <CardTitle className="text-center text-2xl font-bold text-green-400">
-                        Space Lights Out
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-6 gap-1 mb-4">
-                        {grid.map((row, rowIndex) =>
-                            row.map((cell, colIndex) => (
-                                <button
-                                    key={`${rowIndex}-${colIndex}`}
-                                    className={`w-full pt-[100%] relative ${
-                                        cell ? "bg-green-400" : "bg-gray-700"
-                                    } rounded-full transition-colors duration-300 hover:opacity-80`}
-                                    onClick={() => handleCellClick(rowIndex, colIndex)}
-                                >
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div
-                                            className={`w-3/4 h-3/4 rounded-full ${
-                                                cell ? "bg-green-300" : "bg-gray-600"
-                                            } transition-colors duration-300`}
-                                        ></div>
-                                    </div>
-                                </button>
-                            ))
-                        )}
-                    </div>
-                    <div className="text-center mb-4">
-                        <p className="text-green-400 text-lg">Moves: {moves}</p>
-                    </div>
-                    {gameWon && (
-                        <div className="mt-4 text-center">
-                            <p className="text-green-400 text-xl font-bold">
-                                Congratulations! You won in {moves} moves!
-                            </p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-    );
-};
-
-const App = () => {
-    return (
-        <div className="bg-deep-space min-h-screen">
-            <style jsx global>{`
-          @keyframes scroll {
-            0% {
-              transform: translateY(0);
-            }
-            100% {
-              transform: translateY(-100%);
-            }
-          }
-
-          .bg-deep-space {
-            background: linear-gradient(to bottom, #000033, #000066);
-            position: relative;
-            overflow: hidden;
-          }
-
-          .stars {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 200%;
-            background-image:
-                radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
-                radial-gradient(1px 1px at 90px 40px, #ddd, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 160px 120px, #fff, rgba(0,0,0,0));
-            background-repeat: repeat;
-            background-size: 200px 200px;
-            animation: scroll 60s linear infinite;
-            opacity: 0.3;
-          }
-        `}</style>
-            <SpaceLightsOut />
-        </div>
-    );
-};
-
-export default App;
+export default ElementalCombinationGame;
 ```
 
 ### Explanation
 
-1. A 6x6 grid of lights: The game board is created using a nested array structure, rendered as a grid of buttons using Tailwind's `grid` classes.
-2. Light toggling mechanism: The `toggleLights` function handles the logic for toggling the clicked light and its adjacent lights. This is called within the `handleCellClick` function.
-3. Move counter: A state variable `moves` keeps track of the number of turns, displayed below the game board.
-4. Space-themed background: The background is created using CSS gradients and animations. The scrolling star effect is achieved using keyframe animations and multiple radial gradients.
-5. Initial board generation: The `createInitialGrid` function simulates 10 random moves, ensuring the board is solvable.
-6. Winning message: A conditional rendering shows a congratulatory message when the `gameWon` state is true.
+i) The game shows 4 initial elements (Fire 🔥, Water 💧, Earth 🌎, and Air 🌪️) with distinct emojis. These are displayed at the top of the game area.
 
-The implementation successfully creates an interactive, visually appealing Space Lights Out game and follows modern React and CSS best practices.
+ii) Three boxes are represented below the elements: two input boxes (box 1 and box 2) and one result box (box 3). These boxes are square-shaped and can hold emojis. The layout is structured as "box 1 + box 2 = box 3".
+
+iii) Players can drag elements to box 1 and box 2 using HTML5 drag and drop API. Box 3 shows the combined elements (or a "no combination" message). A reset button is placed below the boxes to clear the current combination.
+
+iv) The list of combinations is implemented in the game logic. When two elements are combined, the result is displayed in box 3 using the appropriate emoji.
+
+v) A progress report is shown below the combiner. It includes a "Discovered Combinations:" section with the discovered elements displayed as tags (using Shadcn's Badge component). The progress (e.g., "1/6") is displayed below the tags. A congratulatory message appears when all combinations are found.
+
+vi) The game is visually appealing with a centered container (Card component from Shadcn) and borders applied to the boxes. The layout is clean and organized.
+
+vii) The styles are nature-themed, using a gradient background from light green to light blue. No external images are used, and all emojis are distinct to avoid confusion.
+
+The Elemental Combination Game has been implemented as a self-contained React component using Tailwind for styling and Shadcn components for UI elements. 
