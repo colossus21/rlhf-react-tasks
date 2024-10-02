@@ -13,16 +13,6 @@ const GameBoard = ({ board, toggleLight }) => (
     </div>
 );
 
-// components/MoveCounter.jsx
-const MoveCounter = ({ moves }) => (
-    <p className="text-center text-white mt-4">Moves: {moves}</p>
-);
-
-// components/WinMessage.jsx
-const WinMessage = () => (
-    <p className="text-center text-green-400 mt-4">Congratulations! You've turned off all the stars!</p>
-);
-
 // Tailwind custom classes would be defined for:
 // - bg-deep-blue: background color for space
 // - bg-neon-green: color for the lit stars
