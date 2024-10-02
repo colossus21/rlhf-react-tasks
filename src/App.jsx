@@ -1,157 +1,133 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
+  Card, CardContent, CardHeader, CardTitle,
+  CardFooter, CardDescription
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectItem } from "@/components/ui/select";
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const emojis = [
-  { emoji: '🎂', label: 'Birthday' },
-  { emoji: '💍', label: 'Anniversary' },
-  { emoji: '🎉', label: 'Party' },
-  { emoji: '🏖️', label: 'Vacation' },
-  { emoji: '🎓', label: 'Graduation' },
-  { emoji: '🎄', label: 'Christmas' },
-  { emoji: '🎃', label: 'Halloween' },
-  { emoji: '🍻', label: 'Celebration' },
-  { emoji: '💼', label: 'Meeting' },
-  { emoji: '🏀', label: 'Sports' },
+  '🎂', '🎉', '💍', '🎈', '🎁', '🍰', '🎊', '🥳', '🌟', '🎓'
 ];
 
-function Calendar({ events }) {
-  const [currentDate] = useState(new Date());
+function Event({ event, onDelete }) {
+  return (
+      <div className="mb-2 p-2 bg-purple-100 rounded flex justify-between items-center">
+        <span>{event.emoji} {event.name}</span>
+        <Button size="icon" variant="ghost" onClick={() => onDelete(event)}>
+          ❌
+        </Button>
+      </div>
+  );
+}
+
+function CalendarDay({ day, events, currentMonth }) {
+  const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
+  return (
+      <div className={`p-2 text-center ${!isCurrentMonth ? 'text-gray-400' : ''}`}>
+        <span>{day.getDate()}</span>
+        {events.map((event, idx) => (
+            <div key={idx} className="tooltip" data-tip={event.name}>
+              {event.emoji}
+            </div>
+        ))}
+      </div>
+  );
+}
+
+function MyEvents() {
+  const [events, setEvents] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState({ emoji: '🎂', name: '', date: '', description: '' });
+  const currentDate = new Date();
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-  const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
 
-  return (
-      <div className="grid grid-cols-7 gap-1 text-center">
-        {Array.from({ length: firstDay }).map((_, idx) => <div key={`empty-${idx}`}></div>)}
-        {Array.from({ length: daysInMonth }, (_, i) => {
-          const day = i + 1;
-          const dayEvents = events.filter(e => new Date(e.date).getDate() === day);
-          return (
-              <div key={day} className="relative">
-                <span>{day}</span>
-                {dayEvents.map(e => (
-                    <span
-                        key={e.id}
-                        className="cursor-pointer text-lg"
-                        title={e.name}
-                    >
-                {e.emoji}
-              </span>
-                ))}
-              </div>
-          );
-        })}
-      </div>
-  );
-}
-
-function EventInfo({ events }) {
-  const [currentDate] = useState(new Date());
-  const currentMonthEvents = events.filter(event => new Date(event.date).getMonth() === currentDate.getMonth());
-  const upcoming = currentMonthEvents.filter(event => new Date(event.date) >= currentDate);
-  const passed = currentMonthEvents.length - upcoming.length;
-
-  return (
-      <div className="mt-4 text-sm">
-        <p>Total Events: {currentMonthEvents.length}</p>
-        <p>Upcoming Events: {upcoming.length}</p>
-        <p>Passed Events: {passed}</p>
-      </div>
-  );
-}
-
-function AddEventModal({ isOpen, onClose, onAddEvent }) {
-  const [event, setEvent] = useState({ name: '', emoji: '', date: '', description: '' });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onAddEvent({ ...event, id: Date.now(), date: new Date(event.date).toISOString().split('T')[0] });
-    onClose();
+  const addEvent = () => {
+    if (newEvent.name && newEvent.date) {
+      setEvents([...events, { ...newEvent, date: new Date(newEvent.date) }]);
+      setOpen(false);
+      setNewEvent({ emoji: '🎂', name: '', date: '', description: '' });
+    }
   };
 
+  const deleteEvent = (eventToDelete) => {
+    setEvents(events.filter(event => event !== eventToDelete));
+  };
+
+  const currentMonthEvents = events.filter(event =>
+      event.date.getMonth() === currentDate.getMonth() && event.date.getFullYear() === currentDate.getFullYear()
+  );
+
   return (
-      <Modal open={isOpen} onOpenChange={onClose}>
-        <ModalContent>
-          <ModalHeader className="space-y-1">
-            <CardTitle>Add New Event</CardTitle>
-          </ModalHeader>
-          <ModalBody>
-            <form onSubmit={handleSubmit}>
-              <Input
-                  value={event.name}
-                  onChange={e => setEvent({...event, name: e.target.value})}
-                  placeholder="Event Name"
-                  required
-              />
-              <Select
-                  onValueChange={emoji => setEvent({...event, emoji})}
-                  defaultValue={event.emoji}
-                  className="my-2"
-              >
-                {emojis.map(e => <SelectItem key={e.emoji} value={e.emoji}>{e.emoji} {e.label}</SelectItem>)}
-              </Select>
-              <Input
-                  type="date"
-                  value={event.date}
-                  onChange={e => setEvent({...event, date: e.target.value})}
-                  required
-              />
-              <Textarea
-                  value={event.description}
-                  onChange={e => setEvent({...event, description: e.target.value})}
-                  placeholder="Description"
-                  className="mt-2"
-              />
-              <Button type="submit" className="mt-4">Add Event</Button>
-            </form>
-          </ModalBody>
-          <ModalFooter>
-            <Button onClick={onClose}>Close</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <div className="container mx-auto p-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>My Events</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-7 gap-2">
+              {[...Array(daysInMonth)].map((_, index) => {
+                const day = new Date(currentDate.getFullYear(), currentDate.getMonth(), index + 1);
+                const dayEvents = events.filter(e => e.date.getDate() === day.getDate() &&
+                    e.date.getMonth() === day.getMonth());
+                return <CalendarDay key={day} day={day} events={dayEvents} currentMonth={currentDate} />;
+              })}
+            </div>
+          </CardContent>
+          <CardFooter>
+            <p>Events this month: {currentMonthEvents.length}</p>
+            <p>Upcoming: {currentMonthEvents.filter(e => e.date > currentDate).length}</p>
+            <p>Passed: {currentMonthEvents.filter(e => e.date <= currentDate).length}</p>
+          </CardFooter>
+        </Card>
+
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button className="mt-4">Add Event</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <h2>Add New Event</h2>
+            </DialogHeader>
+            <Input
+                value={newEvent.name}
+                onChange={e => setNewEvent({...newEvent, name: e.target.value})}
+                placeholder="Event Name"
+            />
+            <Select onValueChange={emoji => setNewEvent({...newEvent, emoji})}>
+              <SelectTrigger className="w-full mt-2">
+                <SelectValue placeholder="Select an emoji" />
+              </SelectTrigger>
+              <SelectContent>
+                {emojis.map(emoji => <SelectItem key={emoji} value={emoji}>{emoji}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Input
+                type="date"
+                className="mt-2"
+                value={newEvent.date}
+                onChange={e => setNewEvent({...newEvent, date: e.target.value})}
+            />
+            <Textarea
+                className="mt-2"
+                value={newEvent.description}
+                onChange={e => setNewEvent({...newEvent, description: e.target.value})}
+                placeholder="Description"
+            />
+            <Button onClick={addEvent} className="mt-2">Save Event</Button>
+          </DialogContent>
+        </Dialog>
+
+        <div className="mt-4">
+          {currentMonthEvents.map(event => <Event key={event.name} event={event} onDelete={deleteEvent} />)}
+        </div>
+      </div>
   );
 }
 
 export default function App() {
-  const [events, setEvents] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleAddEvent = (newEvent) => {
-    setEvents([...events, newEvent]);
-  };
-
-  return (
-      <div className="flex justify-center p-4 sm:p-8 bg-indigo-50 min-h-screen">
-        <Card className="w-full max-w-lg bg-purple-50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-indigo-600">My Events</CardTitle>
-            <CardDescription>Manage your events for this month</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Calendar events={events} />
-            <EventInfo events={events} />
-          </CardContent>
-          <CardFooter>
-            <Button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">Add Event</Button>
-          </CardFooter>
-          <AddEventModal
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onAddEvent={handleAddEvent}
-          />
-        </Card>
-      </div>
-  );
+  return <MyEvents />;
 }
