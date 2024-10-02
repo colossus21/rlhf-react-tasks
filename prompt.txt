@@ -1,7 +1,7 @@
 Output a self-contained .jsx React+Tailwind+Shadcn app that accomplishes the following task:
 <task>
 Can you create game by using tailwind and shadcn with the following features:
-i) The game should show 4 elements at start: Fire, Water, Earth, and Air. Each element should have unicode symbols/emojis.
+i) Provide a code plan first. The game should show 4 elements at start: Fire, Water, Earth, and Air. Each element should have unicode symbols/emojis.
 ii) there should be 3 boxes represented like box below the elements: box 1 + box 2 = box 3. boxes should be square shaped and can hold emojis.
 iii) Player can drag elements to box 1 and box 2. Box 3 would show the combined elements. There would be a reset button below. Use emoji of the element.
 iv) Here's a list of combinations:
