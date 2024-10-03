@@ -1,0 +1,21 @@
+Output a self-contained .jsx React+Tailwind+Shadcn app that accomplishes the following task:
+<task>
+Create a personal home page widget "My Homepage" with the following features:
+i) Provide a code plan first. The widget would contain tiles which expand 3 tiles per row evenly spaced. Columns expand as user adds more links. Use lucide-react for icons.
+ii) Each tile contains a title in white text and deep colored background, add a hyperlinked visit button with an icon bottom right. When hovered shows edit and delete icon on top right of each item.
+iii) User should be able to resize the tile horizontally to occupy 2 or 3 columns apart from 1, a button with resize icon should be there bottom-left.
+iv) User should be able to add links with title clicking on a add link button on the top right of the widget. The form should contain Title, Link and Color. Put 16 beautiful deep colors in the dropdown to select from. Add link button goes top right of the widget.
+v) Validate the title to have at least 5 letters, links must be valid as well. Open links in new window when pressed.
+vi) Add an animated star background made with pure css.  Don't use external image, provide a single jsx.
+vii) Add default items xAI LLM (x.ai) - takes 2 columns, bg grey and Turing (turing.com) - takes 1 column bg is black
+</task>
+
+Make sure to use React in your response. You may use components from Shadcn using “@/components” like so: import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; You are not allowed to use any other dependencies or external assets.
+
+You can define multiple sub-components if necessary, but export the final app as a default function component (export default function App()...).
+
+Use modern React idioms like hooks.
+Use Tailwind for styling.
+Use prettier formatting (2-space tab width, semicolons, etc).
+Ensure mobile responsiveness; the app should work with the sm breakpoint in tailwind.
+Restrict your output to around 500 lines.

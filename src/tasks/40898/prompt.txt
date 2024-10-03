@@ -1,0 +1,6 @@
+Can you create a sound recorder with a centered record button:s
+i) Recording button has red bg with text - "Press to record" inside. Check and request microphone permission if not granted, display error if no permission is provided above the record button with red border.
+ii) When a user clicks the record button if permissions are allowed - bg turns green, says "Recording..." inside
+iii) When a user stops the recording the button turns red again with - "Press to record". Add the recording to a list below the button that has title "Recordings"
+iv) Recordings should be playable from the browser. The list should show - title (e.g. Recording 1), date and time when the recording was created, below the player show delete and download buttons.
+v) Download should happen in .webm file.

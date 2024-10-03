@@ -1,0 +1,8 @@
+Can you create this widget called "My Events", I want to see all the important events of the month at once:
+1. A calendar inside a card shows days and if there's any event shows emoji.
+2. Here are samples how events should look like:
+{ emoji: '🎂', name: "Joe's Birthday", description: "Joe likes toys!" }
+3. Below the calendar there should be an info section showing how many events are there in the current month, how many event passed and how many upcoming events are there for current month.
+4. User should be able to add event by setting title, select emoji from dropdown (provide at least 10 emojis for birthdays, anniversay etc), date and description.
+5. when emojis are clicked, show the event name like tooptips.
+6. Use a purple and indigo color scheme
