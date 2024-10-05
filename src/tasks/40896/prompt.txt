@@ -1,8 +1,23 @@
+Output a self-contained .jsx React+Tailwind+Shadcn app that accomplishes the following task:
+<task>
 Can you create this widget called "My Events", I want to see all the important events of the month at once:
 1. A calendar inside a card shows days and if there's any event shows emoji.
 2. Here are samples how events should look like:
 { emoji: '🎂', name: "Joe's Birthday", description: "Joe likes toys!" }
 3. Below the calendar there should be an info section showing how many events are there in the current month, how many event passed and how many upcoming events are there for current month.
-4. User should be able to add event by setting title, select emoji from dropdown (provide at least 10 emojis for birthdays, anniversay etc), date and description.
-5. when emojis are clicked, show the event name like tooptips.
-6. Use a purple and indigo color scheme
+4. User should be able to add event by setting title, select emoji from dropdown (provide at least 10 emojis for birthdays, anniversary etc), date, event priority (low, medium, high), frequency of the events (none, daily, weekly, monthly, yearly) and description. The add event box should be shown on a modal.
+5. when emojis are clicked, show the event names like tooptips including even details. Emojis should be shown beginning of event titles.
+6. Use a purple and indigo color scheme. Do not forget to show events based on frequency of the events.
+7. Months can be cycled using arrow left and arrow right buttons, use emojis for those. The navigation icons go both sides of the month name.
+8. When there are multiple events in the same day, use hamburger icon. Color code cells based on event priority.
+</task>
+
+Make sure to use React in your response. You may use components from Shadcn using “@/components” like so: import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; You are not allowed to use any other dependencies or external assets.
+
+You can define multiple sub-components if necessary, but export the final app as a default function component (export default function App()...).
+
+Use modern React idioms like hooks.
+Use Tailwind for styling.
+Use prettier formatting (2-space tab width, semicolons, etc).
+Ensure mobile responsiveness; the app should work with the sm breakpoint in tailwind.
+Restrict your output to around 500 lines.

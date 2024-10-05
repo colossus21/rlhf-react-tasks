@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,29 +6,92 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 const getMonthName = (month) => new Date(2000, month, 1).toLocaleString('default', { month: 'long' });
 
 const emojis = ['🎂', '🎉', '💍', '🎓', '🏆', '🎄', '🎃', '🥳', '🍾', '💼'];
+const priorities = ['low', 'medium', 'high'];
+const recurrenceOptions = ['none', 'daily', 'weekly', 'monthly', 'yearly'];
+
+const priorityColors = {
+    low: 'bg-green-200',
+    medium: 'bg-yellow-200',
+    high: 'bg-red-200'
+};
 
 const MyEventsWidget = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState([]);
-    const [newEvent, setNewEvent] = useState({ name: '', emoji: '', date: '', description: '' });
+    const [newEvent, setNewEvent] = useState({
+        name: '',
+        emoji: '',
+        date: '',
+        description: '',
+        priority: 'medium',
+        recurrence: 'none'
+    });
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    const addEvent = () => {
+    const addEvent = useCallback(() => {
         if (newEvent.name && newEvent.emoji && newEvent.date) {
-            setEvents([...events, { ...newEvent, date: new Date(newEvent.date) }]);
-            setNewEvent({ name: '', emoji: '', date: '', description: '' });
+            const baseEvent = { ...newEvent, date: new Date(newEvent.date) };
+            const newEvents = [baseEvent];
+
+            // Generate recurring events
+            if (baseEvent.recurrence !== 'none') {
+                const endDate = new Date(baseEvent.date);
+                endDate.setFullYear(endDate.getFullYear() + 1); // Generate events for up to one year
+
+                let currentDate = new Date(baseEvent.date);
+                while (currentDate < endDate) {
+                    currentDate = new Date(currentDate);
+                    switch (baseEvent.recurrence) {
+                        case 'daily':
+                            currentDate.setDate(currentDate.getDate() + 1);
+                            break;
+                        case 'weekly':
+                            currentDate.setDate(currentDate.getDate() + 7);
+                            break;
+                        case 'monthly':
+                            currentDate.setMonth(currentDate.getMonth() + 1);
+                            break;
+                        case 'yearly':
+                            currentDate.setFullYear(currentDate.getFullYear() + 1);
+                            break;
+                    }
+                    if (currentDate < endDate) {
+                        newEvents.push({ ...baseEvent, date: new Date(currentDate) });
+                    }
+                }
+            }
+
+            setEvents(prevEvents => [...prevEvents, ...newEvents]);
+            setNewEvent({
+                name: '',
+                emoji: '',
+                date: '',
+                description: '',
+                priority: 'medium',
+                recurrence: 'none'
+            });
             setIsDialogOpen(false);
         }
-    };
+    }, [newEvent]);
 
-    const isCurrentMonth = (date) => {
+    const isCurrentMonth = useCallback((date) => {
         return date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
-    };
+    }, [currentDate]);
+
+    const changeMonth = useCallback((increment) => {
+        setCurrentDate(prevDate => {
+            const newDate = new Date(prevDate);
+            newDate.setMonth(newDate.getMonth() + increment);
+            return newDate;
+        });
+    }, []);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -39,7 +102,7 @@ const MyEventsWidget = () => {
         upcoming: events.filter(e => isCurrentMonth(e.date) && e.date >= today).length
     };
 
-    const renderCalendar = () => {
+    const renderCalendar = useCallback(() => {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
         const firstDay = new Date(year, month, 1).getDay();
@@ -50,31 +113,45 @@ const MyEventsWidget = () => {
             <div key={weekIndex} className="grid grid-cols-7 gap-1">
                 {Array.from({ length: 7 }).map((_, dayIndex) => {
                     const day = weekIndex * 7 + dayIndex - firstDay + 1;
-                    const currentMonthEvent = events.find(e =>
+                    const currentMonthEvents = events.filter(e =>
                         e.date.getDate() === day &&
                         e.date.getMonth() === month &&
                         e.date.getFullYear() === year
                     );
 
+                    const bgColor = currentMonthEvents.length > 0
+                        ? priorityColors[currentMonthEvents.reduce((acc, event) =>
+                                priorities.indexOf(event.priority) > priorities.indexOf(acc) ? event.priority : acc
+                            , 'low')]
+                        : 'bg-white bg-opacity-50';
+
                     return (
-                        <div key={dayIndex} className="h-14 border rounded-md p-1 text-xs bg-white bg-opacity-50">
+                        <div key={dayIndex} className={`h-14 border rounded-md p-1 text-xs ${bgColor}`}>
                             {day > 0 && day <= totalDays && (
                                 <Popover>
                                     <PopoverTrigger className="w-full h-full">
                                         <div className="flex flex-col items-center justify-between h-full">
                                             <span className="font-semibold">{day}</span>
-                                            {currentMonthEvent && (
-                                                <span className="text-lg">{currentMonthEvent.emoji}</span>
+                                            {currentMonthEvents.length > 0 && (
+                                                <span className="text-lg">
+                          {currentMonthEvents.length > 1 ? '☰' : currentMonthEvents[0].emoji}
+                        </span>
                                             )}
                                         </div>
                                     </PopoverTrigger>
-                                    {currentMonthEvent && (
+                                    {currentMonthEvents.length > 0 && (
                                         <PopoverContent>
-                                            <p className="font-semibold">{currentMonthEvent.name}</p>
-                                            <p className="text-sm text-gray-500">{currentMonthEvent.date.toLocaleDateString()}</p>
-                                            {currentMonthEvent.description && (
-                                                <p className="text-sm mt-2">{currentMonthEvent.description}</p>
-                                            )}
+                                            {currentMonthEvents.map((event, index) => (
+                                                <div key={index} className="mb-2">
+                                                    <p className="font-semibold">
+                                                        {event.emoji} {event.name}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500">{event.date.toLocaleDateString()}</p>
+                                                    <p className="text-sm mt-1">{event.description}</p>
+                                                    <p className="text-sm mt-1">Priority: {event.priority}</p>
+                                                    <p className="text-sm">Recurrence: {event.recurrence}</p>
+                                                </div>
+                                            ))}
                                         </PopoverContent>
                                     )}
                                 </Popover>
@@ -84,7 +161,7 @@ const MyEventsWidget = () => {
                 })}
             </div>
         ));
-    };
+    }, [currentDate, events]);
 
     return (
         <div className="p-4 max-w-md mx-auto">
@@ -94,9 +171,17 @@ const MyEventsWidget = () => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="bg-indigo-50 bg-opacity-70 rounded-lg p-4 mt-4">
-                        <h3 className="text-xl font-semibold mb-4 text-center text-indigo-800">
-                            {getMonthName(currentDate.getMonth())} {currentDate.getFullYear()}
-                        </h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <button onClick={() => changeMonth(-1)} className="text-2xl text-indigo-600 hover:text-indigo-800">
+                                ◀️
+                            </button>
+                            <h3 className="text-xl font-semibold text-center text-indigo-800">
+                                {getMonthName(currentDate.getMonth())} {currentDate.getFullYear()}
+                            </h3>
+                            <button onClick={() => changeMonth(1)} className="text-2xl text-indigo-600 hover:text-indigo-800">
+                                ▶️
+                            </button>
+                        </div>
                         {renderCalendar()}
                     </div>
                     <div className="bg-purple-50 bg-opacity-70 rounded-lg p-4">
@@ -142,6 +227,36 @@ const MyEventsWidget = () => {
                                     onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                                     className="bg-white"
                                 />
+                                <div>
+                                    <Label className="text-sm font-medium">Priority</Label>
+                                    <RadioGroup
+                                        value={newEvent.priority}
+                                        onValueChange={(value) => setNewEvent({ ...newEvent, priority: value })}
+                                        className="flex space-x-4 mt-1"
+                                    >
+                                        {priorities.map((priority) => (
+                                            <div key={priority} className="flex items-center space-x-2">
+                                                <RadioGroupItem value={priority} id={`priority-${priority}`} />
+                                                <Label htmlFor={`priority-${priority}`} className={priority === 'low' ? 'pl-0.5' : ''}>
+                                                    {priority}
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </RadioGroup>
+                                </div>
+                                <Select
+                                    value={newEvent.recurrence}
+                                    onValueChange={(value) => setNewEvent({ ...newEvent, recurrence: value })}
+                                >
+                                    <SelectTrigger className="bg-white">
+                                        <SelectValue placeholder="Select recurrence" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {recurrenceOptions.map((option) => (
+                                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <Button onClick={addEvent} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">Add Event</Button>
                             </div>
                         </DialogContent>
