@@ -1,0 +1,34 @@
+Output a self-contained .jsx React+Tailwind+Shadcn app that accomplishes the following task:
+<task>
+I am a teacher, I have to count the number of words and characters of the essays of the students. Can you create a widget in which:
+i) Provide code plan first. User can upload a .txt file or type text in a text area. A small upload button goes above the textarea, when a file is uploaded the txt content uploaded text is shown inside the text-area
+ii) When a file is uploaded or text is written, below the container show another container with summary of word count, character count and reading time (use a simple algo). As user change the text content, the summary would change real time.
+iii) Along with word summary, show the top 5 words based on frequency with title "Top 5 Words:" below that.
+iv) Provide a sample "lorem ipsum" text inside the textarea by default. Add a toggle box - "Exclude spaces and punctuation" that exclude spaces and punctuations while counting.
+v) Use purple shaded gradient for background, the button should be indigo themed with white text.
+vi) User should be able to export text in .txt format after editing in the text area or copy the content. Below the textarea show a progress bar on how many characters are written based on 1000 character limit. Also show the character limit in text below that right side like 200/1000, make the text red if it goes beyond 1000 character limit. let user put content of any length show the limit in the ui only.
+</task>
+
+Make sure to use React in your response. You may use components from Shadcn using “@/components” like so: import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; You are not allowed to use any other dependencies or external assets.
+
+You can define multiple sub-components if necessary, but export the final app as a default function component (export default function App()...).
+
+Use modern React idioms like hooks.
+Use Tailwind for styling.
+Use prettier formatting (2-space tab width, semicolons, etc).
+Ensure mobile responsiveness; the app should work with the sm breakpoint in tailwind.
+Restrict your output to around 500 lines.
+Output a self-contained .jsx React+Tailwind+Shadcn app that accomplishes the following task:
+<task>
+I want to create a interactive fraction learning tool that will use visualizations to make fractions easy to understand like i want to add sliders for adjusting the numerator and denominator to see real time changes in a pie chart and ss I move the sliders the pie chart will update dynamically and shading the appropriate sections to visually represent the fraction like showing 3/4 as three out of four parts shaded. I also want to add a step by step simplification feature that will visually show how a fraction reduces to its simplest form like if I input 8/12, it will show the pie chart reducing with steps until it shows 2/3 and making the simplification process clear. I also want to add a number line visualization where fractions can be placed and adjusted to see their exact position between whole numbers. This visual will help me understand that fractions like 1/2 are precisely halfway between 0 and 1. and also i want to add fraction to decimal conversion feature that will show the decimal equivalent and also write about fundamental, operations and applications of fraction
+</task>
+
+Make sure to use React in your response. You may use components from Shadcn using “@/components” like so: import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; You are not allowed to use any other dependencies or external assets.
+
+You can define multiple sub-components if necessary, but export the final app as a default function component (export default function App()...).
+
+Use modern React idioms like hooks.
+Use Tailwind for styling.
+Use prettier formatting (2-space tab width, semicolons, etc).
+Ensure mobile responsiveness; the app should work with the sm breakpoint in tailwind.
+Restrict your output to around 500 lines.
